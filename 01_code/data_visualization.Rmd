@@ -1,0 +1,256 @@
+---
+title: "Data Visualization Notes"
+author: "Andrew Nalundasan"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+---
+
+```{r install, eval = FALSE}
+
+## This code will not be evaluated automatically.
+## (Notice the eval = FALSE declaration in the options section of the
+## code chunk)
+
+my_packages <- c("tidyverse", "broom", "coefplot", "cowplot",
+                 "gapminder", "GGally", "ggrepel", "ggridges", "gridExtra",
+                 "here", "interplot", "margins", "maps", "mapproj",
+                 "mapdata", "MASS", "quantreg", "rlang", "scales",
+                 "survey", "srvyr", "viridis", "viridisLite", "devtools")
+
+install.packages(my_packages, repos = "http://cran.rstudio.com")
+
+```
+
+# Set Up Project and Load Libraries
+
+To begin we must load some libraries we will be using. If we do not load them, R will not be able to find the functions contained in these libraries. The tidyverse includes ggplot and other tools. We also load the socviz and gapminder libraries.
+
+```{r setup, include=FALSE}
+
+## By default, show code for all chunks in the knitted document,
+## as well as the output. To override for a particular chunk
+## use echo = FALSE in its options.
+knitr::opts_chunk$set(echo = TRUE) 
+
+## Set the default size of figures
+knitr::opts_chunk$set(fig.width=8, fig.height=5)  
+
+## Load the libraries we will be using
+library(gapminder)
+library(here)
+library(tidyverse)
+library(socviz)
+
+```
+
+# Look at Data
+
++ The graphs you make are meant to be looked at by someone
++ When making graphs, there is only so much that R can do to keep me on the right track
++ Need to begin cultivating my own good sense about graphs now
++ Perceptual tendencies can be honestly harnessed to make our graphics more effective
++ **Scatterplot** - shows the relationship between two quantities
++ What makes figures bad? 3 varieties:
+
+    + Aesthetic
+    + Substantive
+    + Perceptual
+
++ Avoid content-free decoration, including chartjunk aka CLUTTER
++ Visually unique, "infographic" - style graphs are more memorable than more standard statistical visualizations
++ median > raw data
+
+    + Rather look at the trend of an average score, rathern than the trend for the highest possible score
+    
++ Relative comparisons need a stable baseline
++ Our ability to distinguish shades of brightness is not uniform
++ **Luminance** - brightness
++ **Chrominance** - intensity
++ **Diverging Scale** - where the steps away from the midpoint are perceptually even in both directions
++ **Qualitative Palette** - easiliy distinguishable colors but also have the same valence for the viewer
++ We should not pick colors in an ad hoc way
++ **Shape** and **color** are two distinct *channels* that can be used to encode information visually
++ Gestalt principles: 
+
+    + *Proximity* - things that are spatially near to one another seem to be related
+    + *Similarity* - Things that look alike seem to be related
+    + *Connection* - Things that are visually tied to one another seem to be related
+    + *Continuity* - Partially hidden objects are completed into familiar shapes
+    + *Closure* - Incomplete shapes are perceived as complete
+    + *Figure and ground* -  Visual elements are taken to be either in the foreground or in the background
+    + *Common fate* - Elements sharing a direction of movement are perceived as a unit
+    
++ A scatterplot is a visual *representation* of data, not a way to magically transmit pure understanding
++ There are better and worse ways of visually representing data when the task the user must perform involves estimating and comparing values within the graph
++ We tend to misjudge quantities encoded as *angles*
++ Often, the main audience for your visualizations is myself
++ Working with ggplot():
+
+    1. Must give some information to the ggplot() function
+    2. Must choose a geom_() function
+
+# Get Started
+
++ *Install* package only once, but load the library() each session
++ In R, everything we deal with has a name
++ Almost everything is some kind of object
++ c() is a function: for 'combine' or 'concatenate'
+
+    + Take a sequence of comma separate things inside the () and join them together into a vector where each element is still individually accessible
+    
++ Function: special kind of object that can perform actions for me
+
+    + Produces output based on the input it receives
+    
+```{r}
+c(1, 2, 3, 1, 3, 5, 25)  # sends to console and output is provided
+
+# assign to objects
+my_numbers <- c(1, 2, 3, 1, 3, 5, 25)
+your_numbers <- c(5, 31, 71, 1, 3, 21, 6)
+```
+
+```{r}
+# practice with functions
+mean(x=my_numbers)
+mean(x=your_numbers)
+mean(my_numbers)
+
+my_summary <- summary(my_numbers)
+my_summary
+```
+
++ Packages save you from reinventing the wheel
++ Things are done in R by creating and manipulating named objects
++ outputs are as expected
+
+```{r}
+# operations
+table(my_numbers)
+sd(my_numbers)
+my_numbers * 5
+my_numbers + 1
+my_numbers + my_numbers  # vectorized operation - vectors of the same length
+```
+
++ *Vectorized* operation - vectors of the same length are added together (manipulated somehow)
+
+```{r}
+# practice with classes
+class(my_numbers)
+class(my_summary)
+class(summary)
+
+# manipulate classes
+my_new_vector <- c(my_numbers, "Apple")
+my_new_vector
+class(my_new_vector)
+```
+
++ Character strings cannot be used in calculations
+
+
++ *Matrix* - consists of rows and columns of numbers
++ *Data Frame* - rectangular table consisting of rows (of observations) and columns (of variables)
+
+    + Columns can be of different classes
+
+```{r}
+titanic
+class(titanic)
+
+# selecting particular elements in a df
+titanic$percent
+```
+
++ *Tibble* - 
+
+    + used to store variables of different classes all together in a single table of data
+    + Do more to let us know about what they contain
+    + More friendly when interacted with from the console
+    
+```{r}
+titanic_tb <- as_tibble(titanic)
+titanic_tb
+```
+
++ To see inside an object, ask for its *structure*
++ *vector* is just a sequence of numbers
+
+```{r}
+str(my_numbers)
+str(my_summary)
+```
+
+```{r}
+url <- "https://cdn.rawgit.com/kjhealy/viz-organdata/master/organdonation.csv"
+
+organs <- read_csv(file=url)
+```
+
++ "Column specification" - tells us that read_csv() function has assigned a class to each column of the object it created from the CSV file
++ It is helpful to know what class each column / variable is
+
+    + A variable's class determines what sort of operations can be performed on it
+    
++ read_csv() will not classify variables as *factors* unless it's told to
++ You will need to take care that any labeled variables imported into R are coded properly, so that you do not end up mistakenly using missing data in your analysis
++ "Tidy" format:
+
+    + *long* rather than *wide* format
+    + Every observation a row
+    + Every variable a column
+    
+```{r}
+gapminder
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+p + geom_point()
+```
+
+# Make a Plot
+
++ Visualizing data with ggplot *always* involves the same sequence of steps
+
+```{r}
+
+```
+
+
+# Show the Right Numbers
+
+```{r}
+
+```
+
+
+# Graph Tables, Make Labels, Add Notes
+
+```{r}
+
+```
+
+# Work with Models
+
+```{r}
+
+```
+
+# Draw Maps
+
+```{r}
+
+```
+
+
+# Refine your Plots
+
+```{r}
+
+```
+
+
