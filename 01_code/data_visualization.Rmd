@@ -215,11 +215,152 @@ p + geom_point()
 # Make a Plot
 
 + Visualizing data with ggplot *always* involves the same sequence of steps
++ The way you use ggplot to think about the logical structure of the plot
++ *aesthetics* - logical connections between the data and the plot elements
+
++ Steps to creating ggplots: 
+
+    1. Tell ggplot() function what the data is and how the variables in the data logically map onto the plot's aesthetics
+    2. Take the result and say what general sort of plot wished to create, or *geom*
+    
++ Plots: 
+
+    + geom_point() - scatterplot
+    + geom_bar() - bar plot
+    + geom_boxplot() - boxplot
+    
++ ggplot() + geom() yields a plot
++ the rest of it is just details
+
++ Specify the details: 
+
+    + scales
+    + labels
+    + legends
+    + axes
+    + etc.
+
++ Tidy data:
+
+    + *long-format* - every variable is a column, every observation is a row
+    + *wide-format* - some variables are spread out across columns
+    + ggplot wants data in *long-format*
+    
++ tidy data is much more straightforward to work with when it comes to specifying the mappings that you need to coherently describe plots
 
 ```{r}
+# look at the data
+gapminder
+```
+
++ Plot life expectancy against per capita GDP for all country-years in the data
+
+```{r}
+p <- ggplot(data = gapminder)
 
 ```
 
++ data still needs to be mapped
++ *mapping* - tell ggplot which variables in the data should be represented by which visual elements in the plot
++ ggplot also doesn't know what sort of plot we want (*geom*)
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+```
+
++ here, we've given ggplot 2 arguments: 
+
+    1. data
+    2. mapping
+    
++ the *data* argument tells ggplot where to find the variables it is about to use
+
+    + any mentions of variables will be searched for in the specified *data*
+    
++ *mapping* argument is not a data object, not even a character string. It's a *function*
++ this aes() function call says:
+
+    + "The variable on the x-axis is going to be *gdpPercap* and the variable on the y-axis is going to be *lifeExp*"
+    
++ *mapping = aes(...)* argument *links variables to things you will see* on the plot
++ *mapping* does not directly say what particular colors or shapes will be on the plot
++ *mapping* says which *variables* in the data will be *represented* by visual elements on the plot
++ we need to add a *layer* to the plot
+
+```{r}
+p + geom_point()
+```
+
++ Conceptually, we will always follow the same set of steps:
+
+    1. Tell the ggplot() function what our data is
+    2. Tell ggplot() *what* relationships we want to see. For convenience we will put the results of the first two steps in an object called p
+    3. Tell ggplot *how* we want to see the relationships in our data
+    4. Layer on geoms as needed, by adding them to the p object one at a time
+    5. Use some additional function sto adjust scales, labels, tickmarks, titles. 
+    
++ default plots - coordinate system typically cartesian
++ *cartesian* coordinate system - plane defined by an x-axis and a y-axis
++ typically in R - *functions* take *objects* as *inputs* and produce *objects* as *outputs*
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+p + geom_smooth()
+```
+
++ geom_smooth() calculated a smoothed line for us and shaded in a ribbon showing the standard error for the line
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+p + geom_point() + geom_smooth()
+```
+
++ see the data points and the smoothed line together. 
++ R console returns a message regarding "gam". 
+
+    + R has fit a generalized additive model
+    + This implies that there are other models that geom_smooth() understanding
+    + let's try adding method = 'lm' (linear model)
+
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+p + geom_point() + geom_smooth(method = 'lm')
+```
+
++ It's possible to give geoms separate instructions that they will follow
++ Let's try to take the log to spread out the distribution on the left side of this plot
++ 'scale_x_log10()' - scales the x-axis of a plot to a log 10 basis
+
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+p + geom_point() + geom_smooth(method = 'gam') + scale_x_log10()
+```
+
++ This plot is different from in the book. 
++ To match the plot in the book, change to 'method = 'lm''.
++ scale_ functions can be applied to format the tick-marks
+
++ Gain access to all functions within a library, load the library via library()
++ Use just 1 function from a library, use :: to grab that specific function
++ syntax - 
+
+    + thepackage::thefunction
+    
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+p + geom_point() + 
+  geom_smooth(method = 'lm') + 
+  scale_x_log10(labels = scales::dollar)
+```
+
++ scale transformations: 
+
+    1. Possible to directly transform x- or y- axis by adding something like "scale_x_log10()" or "scale_y_log10()" to the plot
+        + The x- or y- axis will be transformed
+        + By default, the tick-marks on the axis will be labeled using *scientific notation*
+    2. Possible to gives these "scales_" functions a "labels" argument that reformats the text printed underneath the tick-marks on the axes.
 
 # Show the Right Numbers
 
