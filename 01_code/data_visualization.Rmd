@@ -50,6 +50,7 @@ library(gapminder)
 library(here)
 library(tidyverse)
 library(socviz)
+library(here)  # make it easier to work with files and subfolders while not needing to type full paths
 
 ```
 
@@ -475,10 +476,6 @@ p + geom_point(mapping = aes(color = continent)) +
     
 + Smoothing line drawn by geom_smooth() is set by default to bright blue with default shaded ribbon to gray
 
-## Save your work
-
-+ 
-
 ```{r}
 p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
 p + geom_point(mapping = aes(color = log(pop))) + scale_x_log10()
@@ -486,6 +483,74 @@ p + geom_point(mapping = aes(color = log(pop))) + scale_x_log10()
 
 + Also possible to map continuous variables (rather than just categorical variables) to the *color* aesthetic too
 + When taking the log() of some data, ggplot produces a gradient scale
+
+## Save your work
+
++ control size and format of a code chunk: 
+
+    + #knitr::opts_chunk$set(fig.width = 8, fig.height = 5)
+    + this sets default size of plots within the .Rmd document
+    + this indicates 8x5 figures
+    
+```{r example, fig.width = 12, fig.height = 9}
+p + geom_point()
+
+# save the most recent plot
+ggsave(filename = "../03_visuals/my_figure.png")
+ggsave(filename = "../03_visuals/my_figure.pdf")
+
+```
+
++ Easiest way to save figures when using ggplot() is to call ggsave()
++ Andrew's tip: set working directory to "03_visuals" folder before calling ggsave()
+
+    + When working director is set to this folder, ggsave() will save the file in this folder directly
+    + When running code directly from .Rmd, use folder path trick to save files to the intended folder
+        + "../03_visuals/filename.png"
+        
+```{r}
+p_out <- p + geom_point() + geom_smooth(method = "loess") + scale_x_log10()
+
+ggsave("../03_visuals/my_figure.pdf", plot = p_out)
+
+# save file using here()
+ggsave(here("03_visuals", "lifeexp_vs_gdp_gradient.pdf"), plot = p_out)
+```
+
++ useful to have a separate folder for just visuals
++ name figures similar to variables and objects - make them meaningful
++ do not include special characters in figure file names including: 
+    
+    + ', `, ' ', /, \, "
+    
++ save file using "here()" and specify which folder within the folder structure: "03_visuals"
+
++ Important distinction between *vector* format vs. *raster* format
+    
+    + *vector* format:
+        + PDF or SVG file types
+        + stored as a set of instructions about lines, shapes, colors, and their relationships
+        + Viewing software: Adobe Acrobat / Apple Preview apps for PDFs
+        + Can be resized without being distorted
+        + Good choice for high quality images
+    + *raster* format: 
+        + JPG and PNG file types
+        + stored images as a grid of pixels of predefined size with information about the location, color, brightness, of each pixel in the grid
+        + raster cannot be easily resized without being pixelated or distorted
+        + JPG and PNG standard file types for images on the web
+        
++ Important to know what the figure will be used for and in what setting/medium of communication
+
+```{r}
+# use ggsave() to explicitly set the height and width of the plot in the chosen units
+ggsave(here("03_visuals", "lifeexp_vs_gdp_gradient.pdf"), plot = p_out, height = 8, width = 10, units = "in")
+```
+
+## Where to go next
+
+
+        
+    
 
 # Show the Right Numbers
 
