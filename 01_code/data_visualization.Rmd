@@ -11,7 +11,19 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+## Set the default size of figures
+## By default, show code for all chunks in the knitted document,
+## as well as the output. To override for a particular chunk
+## use echo = FALSE in its options.
 knitr::opts_chunk$set(fig.width = 8, fig.height = 5, echo = TRUE)
+
+## Load the libraries we will be using
+library(gapminder)
+library(here)
+library(tidyverse)
+library(socviz)
+library(here)  # make it easier to work with files and subfolders while not needing to type full paths
+library(vtable)
 ```
 
 
@@ -21,38 +33,19 @@ knitr::opts_chunk$set(fig.width = 8, fig.height = 5, echo = TRUE)
 ## (Notice the eval = FALSE declaration in the options section of the
 ## code chunk)
 
-my_packages <- c("tidyverse", "broom", "coefplot", "cowplot",
+# my_packages <- c("tidyverse", "broom", "coefplot", "cowplot",
                  "gapminder", "GGally", "ggrepel", "ggridges", "gridExtra",
                  "here", "interplot", "margins", "maps", "mapproj",
                  "mapdata", "MASS", "quantreg", "rlang", "scales",
                  "survey", "srvyr", "viridis", "viridisLite", "devtools")
 
-install.packages(my_packages, repos = "http://cran.rstudio.com")
+# install.packages(my_packages, repos = "http://cran.rstudio.com")
 
 ```
 
 # Set Up Project and Load Libraries
 
 To begin we must load some libraries we will be using. If we do not load them, R will not be able to find the functions contained in these libraries. The tidyverse includes ggplot and other tools. We also load the socviz and gapminder libraries.
-
-```{r setup, include=FALSE}
-
-## By default, show code for all chunks in the knitted document,
-## as well as the output. To override for a particular chunk
-## use echo = FALSE in its options.
-knitr::opts_chunk$set(echo = TRUE) 
-
-## Set the default size of figures
-knitr::opts_chunk$set(fig.width=8, fig.height=5)  
-
-## Load the libraries we will be using
-library(gapminder)
-library(here)
-library(tidyverse)
-library(socviz)
-library(here)  # make it easier to work with files and subfolders while not needing to type full paths
-
-```
 
 # Look at Data
 
@@ -413,6 +406,7 @@ p + geom_point(color = "purple") + geom_smooth(method = "loess") + scale_x_log10
 ```
 
 + R knows what color "purple" is when passed into geom_point()
++ R doesn't know what color "purple" is when passed into the *aesthetic*
 
 ```{r}
 p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
@@ -548,16 +542,635 @@ ggsave(here("03_visuals", "lifeexp_vs_gdp_gradient.pdf"), plot = p_out, height =
 
 ## Where to go next
 
-
-        
-    
-
-# Show the Right Numbers
+1. Explore with ordering of geom_point() and geom_smooth(). How is this helpful with drawing plots?
 
 ```{r}
+p + geom_point()
+p + geom_smooth()
+p + geom_point() + geom_smooth()
+# geom_smooth() is layered ABOVE geom_point()
+p + geom_smooth() + geom_point()
+# geom_smooth() is layered BELOW geom_point()
+```
+
+**Comments**
++ the last geom element is layered on top. It's like layering layers on top of one another. First layer in is on the bottom. Last geom layer called is at the top of the stack. 
++ this would be useful if I know which layer I need to stand out the most, and which layers will be used as background to help build the story
+
+2. Change mappings of aes() function. What does switching up the mappings tells me about the units of observation in the dataset?
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = pop, y = lifeExp))
+p + geom_point() + 
+  geom_smooth() +
+  scale_x_log10()
+```
+
+**Comments**
+
++ when plotting lifeExp against pop rather than GDP, it appears that the distribution of observations resemble a random distribution such as poisson. 
++ geom_smooth is almost flat. It is a slightly positive trend
++ I don't know what this tells me about the unit of observation in the dataset 
+
+3. Try alternative scale mappings like scale_x_sqrt() and scale_x_reverse()
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+
+# scale_x_log10()
+p + geom_point() + 
+  geom_smooth() + 
+  scale_x_log10() + 
+  ggtitle("log x 10")
+
+# scale_x_sqrt()
+p + geom_point() + 
+  geom_smooth() + 
+  scale_x_sqrt() + 
+  ggtitle("log x sqrt")
+
+
+# scale_x_reverse()
+p + geom_point() + 
+  geom_smooth() + 
+  scale_x_reverse() +
+  ggtitle("log x reverse")
+
+# scale_y_log10()
+p + geom_point() + 
+  geom_smooth() + 
+  scale_y_log10() +
+  ggtitle("log y 10")
+
+# scale_y_sqrt()
+p + geom_point() + 
+  geom_smooth() + 
+  scale_y_sqrt() +
+  ggtitle("log y sqrt")
+
+# scale_y_reverse()
+p + geom_point() + 
+  geom_smooth() + 
+  scale_y_reverse() +
+  ggtitle("log y reverse")
 
 ```
 
+**Comments**
+
++ scale_x_log10():
+
+    + takes the log of the x-axis and spreads out the observations that are clumped up
+
++ scale_x_sqrt():
+
+    + I guess instead of taking the log of the x axis, this takes the sqare root of the x axis
+    + x-axis values are a lot smaller than the log
+    + points are clumped up slightly towards left of the plot
+
++ scale_x_reverse():
+
+    + makes x-axis read in reverse (origin is at bottom right corner rather than bottom left corner)
+    + plotted with default settings to x-axis, just flipped (no log and no square root applied)
+    + not sure when reversing would make sense
+
++ scale_y_log10():
+
+    + this doesn't seem to take the log of the y-axix. 
+    + this looks similar to the default plot on the y-axis - observations hella clumped up
+
++ scale_y_sqrt():
+
+    + not much difference from y_log scaling - observations just a little spread out
+    + more of a curvy shape compared to log
+    + not as drastic a change as between x_log10 vs. x_sqrt
+
+
++ scale_y_reverse():
+
+    + as expected, y-axis is reversed
+    + origin is at top left rather than bottom left
+    + not sure when reversing would make sense
+    
+4. Map color to year instead of continent. What are the results? Think about what class the object year is. 
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+
+# color mapped to continent
+p + geom_point(mapping = aes(color = continent)) + 
+  geom_smooth(method = "loess") + 
+  scale_x_log10()
+
+# color mapped to year
+p + geom_point(mapping = aes(color = year)) + 
+  geom_smooth(method = "loess") + 
+  scale_x_log10()
+
+```
+
+**Comments**
++ color by year turned the color scheme to a gradient
++ dark colors for early in time, light colors more recent in time
++ class of year is "integer"
++ class of continent is "factor"
++ we get gradient of color because integer is a continuous variable
++ when color is mapped to a factor variable, we get discrete classes of each factor
+
+5. What happens when mapping color to "factor(year)"?
+
+```{r}
+p + geom_point(mapping = aes(color = factor(year))) + 
+  geom_smooth(method = "loess") + 
+  scale_x_log10()
+```
+
+**Comments**
++ when mapping color to factor(year), R changes the "year" variable from an integer to a factor variable. 
++ R then plots every year as a separate factor and we end up with a factor for every single year
++ might as well still be a gradient because there are so many
+
+6. Improve figure 3.13. What are we gaining and losing by ignoring the temporal and country-level structure of the data? 
+
+```{r}
+p <- ggplot(gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+p + geom_point(alpha=0.3) + 
+  geom_smooth(method="lm") + 
+  scale_x_log10(labels = scales::dollar) + 
+  labs(x = "GDP Per Capita", y = "Life Expectancy in Years", 
+       title = "Economic Growth and Life Expectancy", 
+       subtitle = "Data points are country-years", 
+       caption = "Source: Gapminder.")
+
+```
+
+**Comments**
++ what does "country-years" mean?
++ perhaps we could add a layer to show countries or continents?
++ there are 142 countries in the gapminder dataset. That's too many to display
+
+**Chapter Wrap Up**
++ It's always worth trying something
++ main flow of ggplot is always the same
+
+    1. start with a table of data
+    2. map the variables I want to display to aesthetics like position, color, or shape
+    3. Choose 1 or more geoms to draw the graph
+
+
+# Show the Right Numbers
+
+## Introduction
+
++ Focus on ggplot's central workflow
++ *geoms* - functions that make particular kinds of plots
++ common problem - when an aesthetic is mistakenly set to a *constant value* instead of being mapped to a *variable*
++ *grouping* - internal structure of the data
++ *faceting* - break up data into pieces for a plot
++ *transforming* - get ggplot to perform some calculations on or summarize the data before producing the plot
+
+## Colorless Green Data Sleeps Furiously
+
++ grammar of graphics - set of rules for producing graphics from data, taking pieces of data and mapping them to geometric objects that have aesthetic attributes together with further rules for transforming the data if needed, adjusting scales, and projecting the results onto a different coordinate system
++ syntax and semantics will make or break your plots
+
+## Grouped Data and the "Group" Aesthetic
+
++ Plot the trajectory of life expectancy over time for each country in gapminder
++ geom_line() - will draw lines by connecting observations in order of the variable on the x-axis
+
+```{r}
+p <- ggplot(gapminder, mapping = aes(x=year, y=gdpPercap))
+p + geom_line()
+```
+
+**Comments**
++ This is not what was expected. 
++ This looks like a bar chart
++ ggplot does not know that the yearly observations in the data are grouped by country - I must specify this
++ in this plot, geom_line() tries to join up all the lines for each particular year in the order they appear in the dataset
++ ggplot does not know that the very first observation belongs to Afghanistan in 1952
++ ggplot does not know to look for the second observation for Afghanistan in 1953
++ ggplot plots out all 1952 observations moving alphabetically (Afghanistan -> Zimbabwe) before moving to the next year
++ when bugs occur in ggplot, the reason is almost always that something has gone wrong in the mapping between the data and aesthetics for the gom being used
+
+Use the "group" aesthetic to tell ggplot explicitly about this country-level structure
+
+```{r}
+p <- ggplot(gapminder, mapping = aes(x=year, y=gdpPercap))
+p + geom_line(aes(group = country))
+```
+
+**Comments**
++ still hella rough, but data is displaying correctly
++ each line represents the trajectory of a country over time
++ giant outlier is Kuwait
++ "group" aesthetic usually only needed when the *grouping* information you need to tell ggplot about is not built into the variables being mapped
++ grouping is already clear for categorical/factor variables
++ when mapping x to "year", there is no information in "year" that tells ggplot that it is grouped by country
+
+## Facet to Make Small Multiples
+
++ *facet* - technique that allows a lot of information to be presented compactly and in a consistently comparable way
++ *facet* - way of organizing a series of geoms
++ R's "formula" syntax when using the "tilde character": ~
++ term in the formula: the variable we want the data to be broken up by
+
+```{r}
+p <- ggplot(gapminder, mapping = aes(x=year, y=gdpPercap))
+p + geom_line(aes(group = country)) +
+  facet_wrap(~continent)
+```
+
+**Comments**
++ using facet wrap minimizes the duplication of axis labels and other scales
++ use "ncol" to control the number of columns used to lay out the facets
++ can layer on additional geoms if needed
+
+```{r}
+p <- ggplot(gapminder, mapping = aes(x=year, y=gdpPercap))
+p + geom_line(color="gray70", aes(group = country)) +
+  geom_smooth(size = 1.1, method = "loess", se = FALSE) +
+  scale_y_log10(labels=scales::dollar) +
+  facet_wrap(~ continent, ncol = 5) +
+  labs(x = "Year", 
+       y = "GDP per capita", 
+       title = "GDP per capita on Five Continents")
+```
+
+**Comments**
++ summary of plot:
+
+    + brings together a aesthtic mapping of x and y variables
+    + brings together a grouping aesthetic (country)
+    + brings together 2 geoms (lineplot + smoother)
+    + y-axis is log-transformed with appropriate tick labels
+    + brings together a faceting variable (continent)
+    + includes axis labels and a title
+    
++ facet_wrap() is best used when wanting to facet something based on a **single categorical variable**
++ if cross-classifying data by 2 categorical variables, use **facet_grid()**
+
+## Working with GSS Data
+
++ gapminder:
+    
+    + gapminder consists mostly of *continuous* variables
+    + *continuous* variables can take any value across a large range and vary smoothly
+    + only *categorical* variable is "continent"
+        + unordered *categorical* variable
+        + each country belongs to a continent, but the continents themselves have no natural ordering (other than alphabetical)
+        
++ GSS:
+
+    + long-running survey of American adults that asks about a range of topics of interest to social scientists
+    + contains many *categorical* measures
+    + unordered *categorical* data:
+        + ethnicity
+        + sex
+    + ordered *categorical* data: 
+        + educational attainment
+        + opinion questions asked in yes/no terms
+        + questions answered on a point scale, with "neutral" in the middle
+    + *numeric* variables
+        + number of children - range of integers in a narrow range
+            + could also be represented on a scale with option like "6+ children"
+    + *continuous* variables are often obtainable only as ordered categories
+        + income
+            + 0-30k, 31-60k, 61-90k, etc.
+            
+```{r}
+# look at the data
+glimpse(gss_sm)
+head(gss_sm, 10)
+summary(gss_sm)
+vtable(gss_sm)  # vtable is just a pretty version of glimpse, populates in "Viewer" pane
+class(gss_sm)
+```
+
+Make a smoothed scatterplot of the relationship between the age of the respondent and the number of children they have
+
+```{r}
+p <- ggplot(gss_sm, mapping = aes(x = age, y = childs))
+p + geom_point(alpha = 0.2) +
+  geom_smooth() +
+  facet_grid(sex ~ race)
+```
+
+**Comments**
++ multipanel layouts are especially effective when used to summarize continuous variation acros 2+ categorical variables, with the categories ordered in some sensible way
+
+```{r}
+p <- ggplot(gss_sm, mapping = aes(x = age, y = childs))
+p + geom_point(alpha = 0.2) +
+  geom_smooth() +
+  facet_grid(sex ~ race + degree)
+```
+
+**Comments**
++ Possible to add to the two-way comparison (sex ~ race + degree)
++ Multiple dimensions of plots like this will quickly become very complicated if thevariables have more than a few categories each
+
+## Geoms Can Transform Data
+
++ geom_smooth() will add a trendline to a figure
+
+    + methods: 
+        + "loess"
+        + "lm"
+        + Generalized Additive Model
+
++ some geoms plot our data directly on the figure, like geom_point()
++ every 'geom' function has a default 'stat' function
++ every 'stat' function has a default 'geom' function
++ we sometimes want to calculate different stats using different geoms
+
+```{r}
+p <- ggplot(data = gss_sm, mapping = aes(x = bigregion))
+p + geom_bar()
+```
+
+**Comments**
++ Bar chart provides a count of the number of individual observations in the data set by region of the US
++ y-axis, "count" has bee calculated for me
++ default stat function for geom_bar(): stat_count()
++ stat_count() calculates 2 stats: "count" and "prop" (proportion)
+
+```{r}
+p <- ggplot(data = gss_sm, mapping = aes(x = bigregion))
+p + geom_bar(mapping = aes(y = ..prop..))
+```
+
+**Comments**
++ produces chart of relative frequencies rather than counts by using "prop" statistic instead
++ To make certain these temporary variables won't be confused with others we are working with, their names begin and end with two periods
++ 'dunder period' !!!
++ when calling this, it will look like: 
+
+    + <mapping> = <..statistic..>
+    
+```{r}
+p <- ggplot(gss_sm, mapping = aes(x = bigregion))
+p + geom_bar(mapping = aes(y = ..prop.., group = 1))
+```
+
+**Comments**
++ this chart shows that the bars *sum* to 1
+
+    + so that we get the number of observations per continent as a proportion of the total number of observations
+
++ ggplot *ignores* the x-categories when calculating denominator of the proportion and use the total number observations instead
++ specify "group = 1" inside aes() call
+
+    + value of 1 is a "dummy group" that tells ggplot to use the whole dataset when establishing the denominator for its prop calculations
+    
+```{r}
+table(gss_sm$religion)
+```
+
+```{r}
+p <- ggplot(gss_sm, mapping = aes(x = religion, color = religion))
+p + geom_bar()
+
+p <- ggplot(gss_sm, mapping = aes(x = religion, fill = religion))
+p + geom_bar() + guides(fill = FALSE)
+```
+
+**Comments**
++ "fill" is for painting the insides of shapes
++ mapping "religion" to "color", only the border lines of the bars will be assigned colors, and the insides remain gray
++ we have mapped 2 aesthetics to the same variable
+
+    + both 'x' and "fill" are mapped to "religion"
+
++ default is to show a legend for the color variable
++ guides() controls whether guiding information about any particular mapping appears or not
++ guides(fill = FALSE) will remove the legend
+
+    + this assumes that the audience does not need the legend to figure out what the figure is telling
+    
+## Frequency Plots the Slightly Awkward Way
+
++ use geom_bar() to cross-classify 2 categorical variables
++ Best Practice:  calculate the table first before passing the results along to ggplot to graph
++ geom_bar() - output is controlled by the "position" argument
+
+```{r}
+p <- ggplot(gss_sm, mapping = aes(x = bigregion, fill = religion))
+p + geom_bar()
+```
+
+**Comments**
+
++ default output is stacked bar chart with counts on the y-axis
++ stacked bar charts - it is difficult for readers on the chart to compare lengths and areas on an unaligned scale
++ better alternative: set "position" argument to "fill" (different from "fill" *aesthetic*)
+
+
+```{r}
+p <- ggplot(gss_sm, mapping = aes(x = bigregion, fill = religion))
+p + geom_bar(position = "fill")
+```
+
+**Comments**
++ now all bars are same height, which is easier to make comparisons across groups
+
+```{r}
+p <- ggplot(gss_sm, mapping = aes(x = bigregion, fill = religion))
+p + geom_bar(position = "dodge")
+```
+
+**Comments**
++ ggplot places the bars side-by-side as intended but changes the y-axis back to a *count* of observations
++ we wanted proportions, not counts
+
+```{r}
+p <- ggplot(gss_sm, mapping = aes(x = bigregion, fill = religion))
+p + geom_bar(position = "dodge", mapping = aes(y = ..prop..))
+```
+
+**Comments**
++ there seems to be an issue with grouping
+
+```{r}
+p <- ggplot(gss_sm, mapping = aes(x = bigregion, fill = religion))
+p + geom_bar(position = "dodge", mapping = aes(y = ..prop.., group = religion))
+```
+
+**Comments**
++ outputs a bar chart where values of "religion" are broken down across regions, with a proportion showing on the y-axis
++ bars do not sum to 1 within each reagion
++ bars for any particular religion sum to 1 *across* regions
++ nearly 50% of those who said they were Protestant live in the South
++ just over 10% saying they were Protestant live in the Northeast
++ over 50% of Jewish live in the Northeast, compared to 25% in the South
+
+
+```{r}
+p <- ggplot(gss_sm, mapping = aes(x = religion))
+p + geom_bar(position = "dodge", mapping = aes(y = ..prop.., 
+                                               group = bigregion)) + 
+  facet_wrap(~bigregion, ncol = 2)
+```
+
+**Comments**
++ don't try to force geom_bar() to do all the work in a single step
++ Ask ggplot to give us a proportional bar chart of religious affiliation, then facet that by region
+
+## Histograms and Density Plots
+
++ Different geoms transform data in different ways, but ggplot's vocabulary for them is consistent
++ Histogram - way of summarizing a continuous variable by chopping it up into segments or "bins" and counting how many observations are found within each bin
+
+    + must decide how finely to bin the data
+    
++ Bar chart - categories are given to us going in
++ dataset: midwest
+
+    + information abour counties in midwestern states
+    + area measured in square miles
+    
+```{r}
+p <- ggplot(midwest, mapping = aes(x = area))
+p + geom_histogram()
+```
+
+**Comments**
++ message: "stat_bin()" using "bins = 30". Pick better value with "binwidth".
+
+    + set number of bins in argument
+    + 30 bins chosen by R by default
+    
+```{r}
+p <- ggplot(midwest, mapping = aes(x = area))
+p + geom_histogram(bins = 10)
+```
+
+**Comments**
++ similar to geom_bar(), new variable "count" auto calculated for y-axis
++ when drawing histograms, it's worthwhile to experiment with bins
++ histograms - summarize single variables
+
+```{r}
+# character vector of 2 states
+oh_wi <- c("OH", "WI")
+
+# use subset() to take data and filter it so that we select only rows whose "state" name is in this vector
+# %in% operator is a convenient way to filter on more than one term in a variable when using subset()
+p <- ggplot(data = subset(midwest, subset = state %in% oh_wi),
+            mapping = aes(x = percollege, fill = state))
+p + geom_histogram(alpha = 0.4, bins = 20)
+```
+
+**Comments**
++ subset the data to pick out just 2 states
++ subset() - take our data and filter it so that we select only rows whose "state" name is in this vecotor
++ %in% - filer on more than one term in a variable when using subset()
+
+```{r}
+p <- ggplot(midwest, mapping = aes(x = area))
+p + geom_density()
+```
+
+**Comments**
++ geom_density() - alternative for when working with a continuous variable, an alternative to binning the data and making a histogram 
++ make baselines of the density curves go away: 
+
+    + geom_line(stat = "density")
+    + unable to use "fill" when doing this
+    
+```{r}
+p <- ggplot(midwest, mapping = aes(x = area, fill = state, color = state))
+p + geom_density(alpha = 0.3)
+```
+
+**Comments**
++ many options to use in these arguments
++ count-based defaults computed by the stat_ functions will return proportional measures if asked
++ ..count.. - density * number points
+
+    + this can be used in stacked density plots
+    
+```{r}
+p <- ggplot(data = subset(midwest, subset = state %in% oh_wi),
+             mapping = aes(x = area, fill = state, color = state))
+p + geom_density(alpha = 0.3, mapping = (aes(y = ..scaled..)))
+```
+
+## Avoid Transformation When Necessary
+
++ geom_bar() does its calculations on the fly using stat_count() behind the scenes to produce the counts or proportions it displays
++ Often, our data is already a summary table
+
+    + This can happen when we have computed a table of marginal frequencies or percentages from the original data
+    
+```{r}
+titanic
+```
+
+**Comments**
++ this table already provides percentage values in a summary table
++ we no longer have any need for ggplot to perform calculations
+
+```{r}
+p <- ggplot(data = titanic, mapping = aes(x = fate, y = percent, fill = sex))
+p + geom_bar(positio = "dodge", stat = "identity") + 
+  theme(legend.position = "top")
+```
+
+**Comments**
++ stat = "identity" tells geom_bar() not to do any default calculations. We're already working with proportions and counts.
++ geom_col() is the same thing as geom_bar(), but assumes "stat = "identity"" as default
+
+    + use this geom when don't need any calculations done on the plot
+    
++ stat = "identity" - means "don't do any summary calculations"
++ position = "identity" - "just plot the values as given" 
+
+    + plot a flow of positive and negative values in a bar chart
+    + alternative to a line plot
+    + often seen in public policy settings where changes relative to some threhold level or baseline are of interest
+    
+```{r}
+oecd_sum
+```
+
+```{r}
+p <- ggplot(data = oecd_sum, mapping = aes(x = year, y = diff, fill = hi_lo))
+p + geom_col() + guides(fill = FALSE) + 
+  labs(x = NULL, y = "Difference in Years", 
+       title = "The US Life Expectancy Gap", 
+       subtitle = "Difference between US and OECD average life expectancies, 1960-2015",
+       caption = "Data: OECD. After a char by Christopher Ingraham, 
+       Washington Post, December 27th 2017.")
+```
+
+**Comments**
++ default action for geom_col() sets stat = "identity" and position = "identity"
+
+## Where to Go Next
+
+1. 
+
+
+
+2. 
+
+
+
+3. 
+
+
+
+4.
+
+
+
+5. 
+
+
+
+6. 
 
 # Graph Tables, Make Labels, Add Notes
 
