@@ -1114,7 +1114,7 @@ titanic
 
 ```{r}
 p <- ggplot(data = titanic, mapping = aes(x = fate, y = percent, fill = sex))
-p + geom_bar(positio = "dodge", stat = "identity") + 
+p + geom_bar(position = "dodge", stat = "identity") + 
   theme(legend.position = "top")
 ```
 
@@ -1157,51 +1157,133 @@ p + geom_col() + guides(fill = FALSE) +
         + Assign plot to an object and save as PDF. Experiement with height and width dimensions
         
 ```{r}
+p <- ggplot(gapminder, mapping = aes(x = year, y = gdpPercap))
+p + geom_line(aes(group = country)) + 
+  facet_wrap(~ continent) + 
+  labs(title = "facet on continent")
+
+p + geom_line(aes(group = country)) + 
+  facet_wrap(~ year) + 
+  labs(title = "facet on year")
+
+massive_facet <- p + geom_line(aes(group = country)) + 
+  facet_wrap(~ year) + 
+  labs(title = "facet on country")
+
+ggsave(here("03_visuals", "massive_facet.pdf"), plot = massive_facet)
+
 
 ```
 
 **Comments**
 
++ easy to get overwhelmed by facets if too many categories to plot and deal with
 
 2. What is difference between "facet_grid(sex ~ race)" vs. "facet_grid(~ sex + race)"
 
 ```{r}
+p <- ggplot(gss_sm, mapping = aes(x = age, y = childs))
+p + geom_point(alpha = 0.2) +
+  geom_smooth() + 
+  facet_grid(sex ~ race) + 
+  labs(title = "facet_grid(sex ~ race)")
 
+p + geom_point(alpha = 0.2) +
+  geom_smooth() + 
+  facet_grid(~ sex + race) + 
+  labs(title = "facet_grid(~ sex + race)")
 ```
 
 **Comments**
+
++ "~ sex + race" breaks up the grid to have a separate column for each combination of "sex" and "race"
++ "sex ~ race" breaks up the grid to have one row for each category of "sex" and a separate column for each "race"
 
 3. Investigate difference between "facet_wrap(~ sex + race) vs. "facet_grid(~ sex + race)"
 
 ```{r}
+p + geom_point(alpha = 0.2) +
+  geom_smooth() + 
+  facet_wrap(~ sex + race) + 
+  labs(title = "facet_wrap(~ sex + race)")
 
+p + geom_point(alpha = 0.2) +
+  geom_smooth() + 
+  facet_grid(~ sex + race) + 
+  labs(title = "facet_grid(~ sex + race)")
 ```
 
 **Comments**
 
-4. Replace visuals that call "geom_histogram()" with "geom_freqpoly()" instead and see the difference
++ facet_wrap - breaks up "sex" categories into separate rows by default
+
+    + lays out results in a wrapped 1-dimensional table
+    
++ facet_grid - by default, outputs 1 row of all data
+
+    + lays out results in a fully cross-classified grid
+
+4. Replace visuals the call "geom_histogram()" with "geom_freqpoly()" instead and see the difference
 
 ```{r}
+# character vector of 2 states
+oh_wi <- c("OH", "WI")
 
+# use subset() to take data and filter it so that we select only rows whose "state" name is in this vector
+# %in% operator is a convenient way to filter on more than one term in a variable when using subset()
+p <- ggplot(data = subset(midwest, subset = state %in% oh_wi),
+            mapping = aes(x = percollege, fill = state))
+p + geom_histogram(alpha = 0.4, bins = 20) + 
+  labs("geom_histogram()")
+
+p + geom_freqpoly(alpha = 0.4, bins = 20) + 
+  labs("geom_freqpoly()")
 ```
 
 **Comments**
+
++ geom_freqpoly() draw lines instead of bars (bins) to connect counts. 
++ This is a "frequency polygon"
 
 5. Play with geom_bind2d() to make a histogram with mapped x and y. Use gapminder data. Provide bins for both x and y with "bins = c(20, 50)"
 
 ```{r}
-
+p <- ggplot(gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+p + geom_bin2d(bins = c(20, 50)) + 
+  geom_smooth(method="lm") + 
+  scale_x_log10(labels = scales::dollar) + 
+  labs(x = "GDP Per Capita", y = "Life Expectancy in Years", 
+       title = "Economic Growth and Life Expectancy", 
+       subtitle = "Data points are country-years", 
+       caption = "Source: Gapminder.")
 ```
 
 **Comments**
+
++ bin2d takes arguments for both x and y
++ plots counts as a gradient since continuous variables 
++ added regression line and log of x-axis to make it nicer
 
 6. Using midwest data, plot % below poverty line (percbelowpoverty) against % college-educated (percollege). Try this with and without a geom_point() layer
 
 ```{r}
+p <- ggplot(midwest, mapping = aes(x = percollege, y = percbelowpoverty))
+p + geom_density_2d() + 
+  labs(title = "geom_density_2d()")
+
+p + geom_density_2d() + 
+  geom_point() +
+  scale_x_log10() +
+  labs(title = "geom_density_2d() + geom_point()")
 
 ```
 
 **Comments**
+
++ density_2d is cool! contour lines around the frequency of observations
++ this reminds me of clusters or medoids in ML
+    
+    + easy to see this with geom_point layer on top of the density_2d
 
 # Graph Tables, Make Labels, Add Notes
 
