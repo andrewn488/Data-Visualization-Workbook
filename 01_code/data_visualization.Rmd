@@ -1150,33 +1150,281 @@ p + geom_col() + guides(fill = FALSE) +
 
 ## Where to Go Next
 
-1. 
+1. Experiment with different ways to facet gapminder data.
+
+    + Plot population and per capita GDP while faceting on year
+    + Facet on "country" but anticipate heaps of panels
+        + Assign plot to an object and save as PDF. Experiement with height and width dimensions
+        
+```{r}
+
+```
+
+**Comments**
 
 
-
-2. 
-
-
-
-3. 
-
-
-
-4.
-
-
-
-5. 
-
-
-
-6. 
-
-# Graph Tables, Make Labels, Add Notes
+2. What is difference between "facet_grid(sex ~ race)" vs. "facet_grid(~ sex + race)"
 
 ```{r}
 
 ```
+
+**Comments**
+
+3. Investigate difference between "facet_wrap(~ sex + race) vs. "facet_grid(~ sex + race)"
+
+```{r}
+
+```
+
+**Comments**
+
+4. Replace visuals that call "geom_histogram()" with "geom_freqpoly()" instead and see the difference
+
+```{r}
+
+```
+
+**Comments**
+
+5. Play with geom_bind2d() to make a histogram with mapped x and y. Use gapminder data. Provide bins for both x and y with "bins = c(20, 50)"
+
+```{r}
+
+```
+
+**Comments**
+
+6. Using midwest data, plot % below poverty line (percbelowpoverty) against % college-educated (percollege). Try this with and without a geom_point() layer
+
+```{r}
+
+```
+
+**Comments**
+
+# Graph Tables, Make Labels, Add Notes
+
++ Added layer of complexity: 
+
+    1. Learn about how to transform data *before* sending it to ggplot (data wrangling)
+        + Better to get things into the right shape before working with ggplot
+    2. Explore more geoms and learn how to choose between them
+        + Given the data we have vs. visualization we want
+        + Subset the data before displaying it
+    3. Utilize scale, guide, and theme functions
+        + Provides more control over content and appearance of visuals
+        + Increases legibility to audience
+        + Layer geoms on top of one another
+    + We will always be building visuals piece by piece / layer by layer
+    + * We want a table of tidy data, a mapping of variables to aesthetic elements, and a particular type of graph
+    
+## Use Pipes to Summarize Data
+
++ *column marginals* - numbers sum to 100 by column 
++ *row marginals* - numbers sum to 100 across the rows
++ very easy to lose track of whether R has calculated row margins, column margins, or overall relative frequencies
++ Best Practice: make calculations first, THEN make plots
++ *dplyr* - component of the tidyverse that provides functions for manipulating and reshaping tables of data on the fly
++ goal: summary table with % of religious preferences grouped within a region
++ %>% - allows us to start with a data frame and perform a *sequence* or *pipeline* of operations to turn it into another, usually smaller and more aggregated, table
+
+    + data goes in one side of the pipe, actions are performed via functions, and results come out the other
+
++ 4 typical pipes: 
+
+    1. *Group* - group the data into the nested structure we want for our summary, such as "Religion by Region" or "Authors by Publications by Year"
+    2. *Filter* or *Select* - filter or select pieces of the data by row, column, or both. This gets us the piece of the table we want to work on
+    3. *Mutate* - mutate the data by creating new variablse at the *current* level of grouping. This adds new columns to the table without aggregating it
+    4. *Summarize* - summarize or aggregate the grouped data. This creates new variables at a *higher* level of grouping. For example we might calculate means with "mean()" or counts with "n()". This results in a smaller, summary table, which we might further summarize or mutate if we want
+    
+```{r}
+# create object
+rel_by_region <- gss_sm %>%
+  
+  # group the rows by bigregion and, within that, by religion
+  group_by(bigregion, religion) %>% 
+  
+  # summarize this table to create a new, much smaller table, with 3 columns: bigregion, religion, and a new summary variable, N, that is a count of the number of observations within each religious group for each region
+  summarize(N = n()) %>% 
+  
+  # with this new table, use the N variable to calculate 2 new columns: relative proportion (freq) and percentage (pct) for each religious category, still grouped by region. Round the results to the nearest percentage point
+  mutate(freq = N / sum(N),  # find averages just like in python!
+         pct = round((freq*100), 0))
+
+rel_by_region
+```
+
+**Comments**
++ Objects on the left side of the pipe "pass through", and whatever is specified on the right of the pipe gets done to that object
++ don't have to keep specifying the name of the underlying data fram object I'm working from
++ everything implicitly carried forward from "gss_sm"
++ Within the pipeline, implicit objects created from summaries and other transformations are carried through also
++ group_by() function sets up how the grouped or nested data will be processed within the summarize(). 
+
+    + Any function used to create a new variable within summarize() (such as mean(), sd(), or n()), will be applied to the *innermost* grouping level first
+    + Grouping levels are named from left to right within group_by() from outermost to innermost
+    + dplyr summarizes actions and peel off one grouping level at a time, so that the resulting summaries are at the next level up
+    + Start with individual-level observations and group them by *religion* within *region*
++ summarize() aggregates the individual observations to counts of the number of people affiliated with each religion, for each region
++ mutate() - adds or removes columns from tables but do not change the grouping level
++ summarize() and mutate() - we can invent named arguments
+
+    + they are the names that the newly created variables in the summary table will have
+    
+```{r}
+rel_by_region %>% 
+  group_by(bigregion) %>% 
+  summarize(total = sum(pct))
+  
+```
+
+**Comments**
+
++ verify the pct values sum to 100 within each region
+
+```{r}
+p <- ggplot(rel_by_region, aes(x = bigregion, y = pct, fill = religion))
+p + geom_col(position = "dodge2") + 
+  labs(x = "Region", y = "Percent", fill = "Religion") + 
+       theme(legend.position = "top")
+```
+
+**Comments**
+
++ "dodge2" puts bars side by side
+
+    + default position - proportionally stacked column chart
+    + position = "dodge" - stacked within columns (result reads incorrectly)
+    + position = "dodge2" - puts the subcategories (religious affiliations) side-by-side within groups (regions)
+    
++ still a bad viz. Too many bars side by side. Too crowded
++ dodged charts can be more cleanly expressed as faceted plots
++ faceting removes the need for a legend, thus is simpler for audience to read
+
+```{r}
+p <- ggplot(rel_by_region, aes(x = religion, y = pct, fill = religion))
+p + geom_col(position = "dodge2") + 
+  labs(x = NULL, y = "Percent", fill = "Religion") + 
+  guides(fill = FALSE) +
+  coord_flip() +
+  facet_grid(~ bigregion)
+```
+
+**Comments**
+
++ coord_flip() - switches x and y axes after the plot is made
+
+    + does not remap variables to aesthetics
+    
++ dplyr - way to quickly summarize tables of data without having to write code in the body of our ggplot() or geom_ functions
+
+## Continuous Variables by Group or Category
+
++ Start using "organdata" dataset
+
+```{r}
+# look at the data
+head(organdata, 10)
+vtable(organdata)
+summary(organdata)
+glimpse(organdata)
+organdata %>% select(1:6) %>% sample_n(size = 10)
+```
+
+**Comments**
+
++ Organ procurements rate is a measure of the number of human organs obtained from cadaver organ donors for use in transplant operations
++ Data regarding donation or organs for transplants in 17 OECD countries
++ some missing values ("NA")
++ select() selects columns 1:6
+
+```{r}
+# naively plot data and see what happens
+# scatterplot of donors vs year
+p <- ggplot(organdata, mapping = aes(x = year, y = donors))
+p + geom_point()
+```
+
+**Comments**
+
++ if there are heaps of warnings, R will ask me to read them with "warnings()"
++ If want to plot each country's time series using geom_line(), must tell ggplot what the grouping variable is
+
+```{r}
+p <- ggplot(organdata, mapping = aes(x = year, y = donors))
+p + geom_line(aes(group = country)) +
+  facet_wrap(~ country)
+```
+
+**Comments**
+
++ use geom_boxplot() to get a picture of variation by year across countries
++ stat_boxplot() works by default with geom_boxplot() (similar to stat() working with geom_bar())
++ tell geom_boxplot() the variable we want to categorize by "(here, country)" and the continuous variable we want summarized "(here, donors)"
+
+```{r}
+p <- ggplot(organdata, mapping = aes(x = country, y = donors))
+p + geom_boxplot()
+```
+
+**Comments**
+
++ x-axis is too crowded - names overlap
++ fix this by flipping coords
+
+```{r}
+p <- ggplot(organdata, mapping = aes(x = country, y = donors))
+p + geom_boxplot() + coord_flip()
+```
+
+**Comments**
+
++ better than previous visual, but not ideal
++ there's no order to this. The audience would be confused
++ reorder(): 2 arguments 
+
+    1. categorical variable or factor that we want to reorder (in this case, country)
+    2. variable we want to reorder it by (in this case, donors)
+    3. (optional) function wanted to use as a summary statistic (default = reorder categoris of 1st variable by the mean value of 2nd variable)
+        + R will fail if using mean() if there are NA's in the data
+        + specify it's OK to remove null values (na.rm = TRUE)
+        
+```{r}
+p <- ggplot(organdata, mapping = aes(x = reorder(country, donors, na.rm = TRUE), y = donors))
+p + geom_boxplot() + 
+  labs(x = NULL) +
+  coord_flip()
+```
+
+**Comments**
+
++ since it's obvious these are country names, set labs(x = NULL)
+
+```{r}
+p <- ggplot(organdata, mapping = aes(x = reorder(country, donors, na.rm = TRUE), y = donors))
+p + geom_violin() + 
+  labs(x = NULL) +
+  coord_flip()
+```
+
+**Comments**
+
++ same thing as boxplot, but using violin plot instead
++ these are ugly
+
+```{r}
+p <- ggplot(organdata, mapping = aes(x = reorder(country, donors, na.rm=TRUE), y = donors, fill = world))
+p + geom_boxplot() +
+  labs(x = NULL) + 
+  coord_flip() + 
+  theme(legend.position = "top")
+```
+
+**Comments**
+
++ useful trick - put *categorical variables* on the y-axis to compare their distributions
++ makes it easy to effectively present summary data on more categories
 
 # Work with Models
 
