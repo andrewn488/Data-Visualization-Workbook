@@ -24,6 +24,7 @@ library(tidyverse)
 library(socviz)
 library(here)  # make it easier to work with files and subfolders while not needing to type full paths
 library(vtable)
+library(ggrepel)  # easier to work with text labels rather than using geom_text()
 ```
 
 
@@ -1507,6 +1508,293 @@ p + geom_boxplot() +
 
 + useful trick - put *categorical variables* on the y-axis to compare their distributions
 + makes it easy to effectively present summary data on more categories
++ geom_point() has argument for "color" but not for "fill" 
+
+```{r}
+p <- ggplot(organdata, mapping = aes(x = reorder(country, donors, na.rm = TRUE), y = donors, color = world))
+p + geom_point() + 
+  labs(x=NULL) + 
+  coord_flip() +
+  theme(legend.position = "top")
+```
+
+**Comments**
+
++ There are some overplotting of some observations
++ Use geom_jitter() to see points that are plotted on top of each other
+
+```{r}
+p <- ggplot(organdata, mapping = aes(x = reorder(country, donors, na.rm=TRUE), y = donors, color = world))
+p + geom_jitter() + 
+  labs(x=NULL) + 
+  coord_flip() + 
+  theme(legend.position = "top")
+```
+
+**Comments**
+
++ points are nudge a tiny bit just to show multiple points plotted on the same sport
++ can control amount of "jittering" using "height" and "width" arguments
+
+```{r}
+p <- ggplot(organdata, mapping = aes(x = reorder(country, donors, na.rm=TRUE), y = donors, color = world))
+p + geom_jitter(position = position_jitter(height = 0.15, width=0.15)) + 
+  labs(x=NULL) + 
+  coord_flip() + 
+  theme(legend.position = "top")
+```
+
+**Comments**
+
++ Did not need "height" argument because it has no effect. 
++ Adding "height" argument results in the same output
++ Use this approach when we want to summarize a categorical variable that just has 1 point per category
++ This method is preferred over bar chart or a table
+
+```{r}
+by_country <- organdata %>% 
+  group_by(consent_law, country) %>% 
+  summarize(donors_mean = mean(donors, na.rm=TRUE), 
+            donors_sd = sd(donors, na.rm=TRUE), 
+            gdp_mean = mean(gdp, na.rm=TRUE),
+            health_mean = mean(health, na.rm=TRUE),
+            roads_mean = mean(roads, na.rm=TRUE), 
+            cerebvas_mean = mean(cerebvas, na.rm=TRUE))
+```
+
+**Comments**
+
++ 2 steps: 
+    
+    1. Group data by 'consent_law' and 'country'
+    2. Summarize to create 6 new variables, each one of which is the mean or sd of each country's score on a corresponding variable 
+    
++ summarize step will inherit information about the original data and gthe grouping and then do its calculations at the innermost grouping level
+
+    + takes all observations for each country and calculates the mean or sd as requested
+    
+```{r}
+by_country
+vtable(by_country)
+```
+
+**Comments**
+
++ countries are summarized alphabetically within 'consent_law', which is the outermost grouping variable in the 'group_by()' statement
++ in the pipeline for 'by_county', there are a lot of repeat function calls happening. We can write this more efficiently
++ write a line that applies 'mean()' and 'sd()' functions to every numerical variable in dataset, but *only* numerical ones
+
+```{r}
+by_country <- organdata %>% 
+  group_by(consent_law, country) %>% 
+  summarize_if(is.numeric, funs(mean, sd), na.rm=TRUE) %>% 
+  ungroup()
+```
+
+**Comments**
+
++ 'summarize_if()' - examines each column in our data and applies a test to it, only summarizing if the test passes (if return value is TRUE)
++ 'funs()' - list functions we want to apply if return value is TRUE
++ 'ungrou()' - ungroup the data at the end, so that the result is a plain tibble
+
+```{r}
+by_country
+```
+
+**Comments**
+
++ all numerical variables have been summarized
++ function applied from 'funs()' is appended to the end of each variable name that it was applied to
+
+    + 'donors_mean'
+    + 'donors_sd'
+    
+```{r}
+p <- ggplot(by_country, mapping = aes(x = donors_mean, y = reorder(country, donors_mean), color = consent_law))
+p + geom_point(size=3) + 
+  labs(x = "Donor Procurement Rate", 
+       y = "", color = "Consent Law") + 
+  theme(legend.position = "top")
+```
+
+**Comments**
+
++ alternative approach to this; use facet instead of color
++ 'scales = "free_y"' - this usually breaks comparability, but when one axis is categorical, we can free the categorical axis and leave the continuous axis fixed
+
+```{r}
+p <- ggplot(by_country, mapping = aes(x = donors_mean, y = reorder(country, donors_mean)))
+            
+p + geom_point(size=3) + 
+  facet_wrap(~ consent_law, scales = "free_y", ncol = 1) + 
+  labs(x = "Donor Procurement Rate", 
+       y = "")
+```
+
+**Comments**
+
++ Cleveland dotplots are generally preferred to bar or column charts
++ when using these, put the categories on the y-axis and order them in a way that is most relevant to the numerical summary being provided
+
+```{r}
+p <- ggplot(by_country, mapping = aes(x = reorder(country, donors_mean), y = donors_mean))
+
+p + geom_pointrange(mapping = aes(ymin = donors_mean - donors_sd, ymax = donors_mean + donors_sd)) +
+  labs(x = "", y = "Donor Procurement Rate") + 
+  coord_flip()
+```
+
+**Comments**
+
++ 'geom_pointrange()' expects 'y', 'ymin', and 'ymax' as arguments. 
++ We map 'donors_mean' to 'y' and the 'ccode' variable to 'x', 
++ then flip the axes at the end with 'coord_flip()'
+
+## Plot Text Directly
+
++ 'geom_text()' - use to plot labels along with the points in a scatterplot, or just plot informative labels directly
+
+```{r}
+p <- ggplot(by_country, mapping = aes(x = roads_mean, y = donors_mean))
+p + geom_point() + 
+  geom_text(mapping = aes(label = country))
+```
+
+**Comments**
+
++ 'country' labels are plotted right on top of each point because they are positioned with the same x and y mapping
++ either drop the geom_point or make horizontal adjustment using 'hjust' 
+
+```{r}
+p <- ggplot(by_country, mapping = aes(x = roads_mean, y = donors_mean))
+
+p + geom_point() + 
+  geom_text(mapping = aes(label = country), hjust = 0)
+```
+
+**Comments**
+
++ 'hjust = 0' - left justify
++ 'hjust = 1' - right justify
+
+
+```{r}
+elections_historic %>% select(2:7)
+```
+
+**Comments**
+
++ Switch datasets to work with some historical US presidential election data via 'socviz' library
+
+```{r}
+# could put these labels directly in code, but it is tidier to assign text to objects and pass in the objects
+p_title <- "Presidential Elections: Popular & Electoral College Margins"
+p_subtitle <- "1824-2016"
+p_caption <- "Data for 2016 are provisional."
+x_label <- "Winner's share of Popular Vote"
+y_label <- "Winner's share of Electoral College Votes"
+
+p <- ggplot(elections_historic, aes(x = popular_pct, y = ec_pct, label = winner_label))
+
+p + geom_hline(yintercept = 0.5, size = 1.4, color = "gray80") + 
+  geom_vline(xintercept = 0.5, size = 1.4, color = "gray80") + 
+  geom_point() + 
+  geom_text_repel() + 
+  scale_x_continuous(labels = scales::percent) + 
+  scale_y_continuous(labels = scales::percent) + 
+  labs(x = x_label, y = y_label, title = p_title, subtitle = p_subtitle, caption = p_caption)
+```
+
+**Comments**
+
++ use 'scale_x_continous()' and 'sclae_y_continuous()' to adjust labels of the scales since shares are stored in the data as proportions (0 to 1) rather than percentages
++ x-axis: popular vote 50% line
++ y-axis: electoral college 50% line
++ 'hline' and 'vline' are plotted at top of code so the points and labels are layered **on top** of them
++ normally it is **NOT** a good idea to label every point on a plot like above. Better approach would be to select a few points of particular interest
++ 'ggrepel' package is consistently favored over using 'geom_text()' 
+
+## Label Outliers
+
++ to label some points but not others, we must select the points we want to label
++ 'subset()' does the work
+
+```{r}
+p <- ggplot(by_country, mapping = aes(x = gdp_mean, y = health_mean))
+
+p + geom_point() + 
+  geom_text_repel(data = subset(by_country, gdp_mean > 25000),
+                  mapping = aes(label = country))
+
+p <- ggplot(by_country, mapping = aes(x = gdp_mean, y = health_mean))
+
+p + geom_point() + 
+  geom_text_repel(data = subset(by_country, 
+                                gdp_mean > 25000 | health_mean < 1500 |
+                                  country %in% "Belgium"),
+                  mapping = aes(label = country))
+```
+
+**Comments**
+
++ 'subset()' - used to create a small dataset on the fly
++ 'subset()' - takes the 'by_country' object and selects only the cases where 'gdp_mean' > 25000
+
+    + only these points are labelled on the plot
+    
++ "|" - pipe character represents "or" 
+
+```{r}
+organdata$ind <- organdata$ccode %in% c("Ita", "Spa") & organdata$year > 1998
+
+p <- ggplot(organdata, mapping = aes(x = roads, y = donors, color = ind))
+
+p + geom_point() + 
+  geom_text_repel(data = subset(organdata, ind),
+                  mapping = aes(label = ccode)) + 
+  guides(label = FALSE, color = FALSE)
+```
+
+**Comments**
+
++ observation logic - obs is coded as TRUE if ccode is "Ita" or "Spa" **AND** if the 'year' > 1998. 
+
+    + all constraints must be met for observation to be marked as TRUE
+
+## Write and Draw in the Plot Area
+
++ 'annotate()' - use to point out something important that is not mapped to a variable
+    
+    + can *use* geoms, temporarily taking advantage of their features in order to place something on the plot
+    
+```{r}
+p <- ggplot(organdata, mapping = aes(x = roads, y = donors))
+p + geom_point() + 
+  annotate(geom = "text", x = 91, y = 33, 
+           label = "A surpringly high \n recovery rate.", 
+           hjust = 0)
+```
+
+**Comments**
+
++ I'd rather just use 'ggannotate()' instead
+
+```{r}
+p <- ggplot(organdata, 
+            mapping = aes(x = roads, y = donors))
+
+p + geom_point() + 
+  annotate(geom = "rect", xmin = 125, xmax = 155, 
+           ymin = 30, ymax = 35, fill = "red", alpha = 0.2) + 
+  annotate(geom = "text", x = 157, y = 33,
+           label = "A surprisingly high \n recovery rate.", hjust = 0)
+```
+
+**Comments**
+
++ I'd still rather just use ggannotate() instead
+
+## Understanding Scales, Guides, and Themes
 
 # Work with Models
 
