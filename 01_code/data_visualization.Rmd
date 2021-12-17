@@ -1796,6 +1796,136 @@ p + geom_point() +
 
 ## Understanding Scales, Guides, and Themes
 
++ 'scale_x_log10()' and 'scale_x_continuous()', and other 'scale_...' functions used to adjust axis labels
++ 'gui9des()' function - remove the legends for a color mapping and a label mapping
++ 'theme()' - move position of  alegend from the side to the top of a figure
++ different plots require different mappings in order to work, and so each 'geom_' function takes mappings tailored to the kind of graph it draws
++ 'scale_' functions: 
+
+    + Every aesthetic mapping has a scale. If you want to adjust how that scale is marked or graduated, then you use a 'scale_' function
+    + Many scales come with a legend or key to help the reader interpret the graph. These are called *guides*. You can make adjustments to them with the 'guides()' function. Perhaps the most common use case is to make the legend disappear, as som times it is superfluous. Another is to adjust the arrangement of the key in legends and color bars
+    + Graphs have other features not strictly connected to the logical structure of the data being displayed. These include things like their background color, the typeface used for labels, or the placement of the legend on the graph. To adjust these, use the 'theme()' function
+    
++ Rule of thumb regarding 'aes()' vs. 'scale_()' and 'geom_()' vs. 'theme()': 
+
+    + If the change you want to make will affect the substantive interpretation of any particular geom, then most likely you will either be mapping an aesthetic to a variable using that geom's 'aes()' function or be specifying a change via some 'scale_' function
+    + If the change you want to make does not affect the interpretation of a given 'geom_()', then most likely you will either be setting a variable inside the 'geom_()' function, or making a cosmetic change via the 'theme()' function.
+    
+```{r}
+p <- ggplot(organdata, mapping = aes(x = roads, y = donors, color = world))
+
+p + geom_point()
+```
+
+**Comments**
+
++ every mapped variable has a scale
+
+    + 'roads' mapped to x
+    + 'donors' mapped to y
+    + 'world' mapped to color
+    
++ x and y scales are both *continuous*
+
+    + this is typically the case
+    
++ 'world' measure (color or fill scale) is an unordered categorical variable, so its scale is *discrete*
+
+    + this is typically the case
+    
++ If x is mapped to a continuous variable, then adding "+ scale_x_continuous()" to the plot statement with no further agruments will have no effect
+
+    + ggplot already understands that the variable is continuous
+    + it is already implicitly understood
+    
+```{r}
+p <- ggplot(organdata, mapping = aes(x = roads, y = donors, color = world))
+p + geom_point() + 
+  scale_x_log10() + 
+  scale_y_continuous(breaks = c(5, 15, 25), labels = c("Five", "Fifteen", "Twenty Five"))
+```
+
+```{r}
+p <- ggplot(organdata, mapping = aes(x = roads, y = donors, color = world))
+p + geom_point() + 
+  scale_color_discrete(labels = c("Corporatist", "Liberal", "Social Democratic", "Unclassified")) + 
+  labs(x = "Road Deaths", 
+       y = "Donor Procurement", 
+       color = "Welfare State")
+```
+
+**Comments**
+
++ purely cosmetic decisions - use 'theme()' function
+
+
+```{r}
+p <- ggplot(organdata, mapping = aes(x = roads, y = donors, color = world))
+p + geom_point() + 
+  labs(x = "Road Deaths", 
+       y = "Donor Procurement") +
+  guides(color = FALSE)
+```
+
+**Comments**
+
++ Removed legend
++ 'scale_()' functions:
+
+    + scale_<mapping>_<kind>()
+    
+## Where to Go Next
+
+1. Redo fig 5.18 so that it shows all the data points but only labels elections since 1992.See 'elections_historic' dataset to see what variables are available. 
+
+2. Using 'geom_point()' and 'reorder()', make a Cleveland dotplot of all presidential elections, ordered by share of the population vote
+
+
+
+3. add a rectangle using 'annotate()' that lightly colors the entire upper left quadrant of figure 5.18
+
+
+
+4. Reproduce a pair of graphs from Chapter 1, as seen on 5.28. You will need to filter some rows, group the data by continent, and calculate the mean life expectancy by continent before beinning the plotting process
+
+
+
+5. Get comfy with grouping, mutating, and summarizing data in pipelines. Create some grouped objects from the GSS data
+
+```{r}
+gss_sm %>% group_by(race, degree) %>% summarize(N - n()) %>% 
+  mutate(pct = round(N / sum(N) * 100, 0))
+```
+
+
+
+
+6. By grouping by 'race' and summing the percentages, check results
+
+
+
+7. Calculate mean and median number of children by degree by using functions other than 'sum'
+
+
+
+8. Read into 'dplyr' best practices
+
+
+
+9. Examine population or life expectancy over time using a series of boxplots using 'gapminder' data. Facet this boxplot by continent. 
+
+
+
+10. Experiment with 'notch' and 'varwidth' options for 'geom_boxplot()
+
+
+
+11. Swap out 'geom_boxplot()' with 'geom_violin()' to compare
+
+
+
+12. Experiment with 'geom_pointrange()' using 'gapminder' or 'organdata' to see how they differ
+
 # Work with Models
 
 ```{r}
