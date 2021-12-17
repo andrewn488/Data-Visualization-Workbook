@@ -1929,8 +1929,117 @@ gss_sm %>% group_by(race, degree) %>% summarize(N - n()) %>%
 # Work with Models
 
 ```{r}
+p <- ggplot(gapminder, mapping = aes(x = log(gdpPercap), y = lifeExp))
 
+p + geom_point(alpha = 0.1) + 
+  geom_smooth(color = "tomato", fill = "tomato", method = MASS::rlm) + 
+  geom_smooth(color = "steelblue", fill = "steelblue", method = "lm")
+
+p + geom_point(alpha = 0.1) + 
+  geom_smooth(color = "tomato", method = "lm", size = 1.2, formula = y ~ splines::bs(x, 3), se = FALSE)
+
+p + geom_point(alpha = 0.1) + 
+  geom_quantile(color = "tomato", size = 1.2, method = "rqss", lambda = 1, quantiles = c(0.20, 0.5, 0.85))
 ```
+
+**Comments**
+
++ 'stat_' functions compute single numbers or new variables before plotting them for histograms, density plots, boxplots, and other geoms
++ MASS::rlm - 'robust linear model' - fits a robust regression line
++ splines::bs - fit a polynominal curve to the data
++ 'geom_quantile()' - can fit quantil regression lines using a variety of methods
+
+    + quantiles() - takes a vector specifying the quantiles at which to fit the lines
+    
+## Show Several Fits at Once, with a Legend
+
++ when plotting multiple layers of 'geom_smooth', always set 'color' and 'fill' to different settings to easily distinguish between each layer
++ it is possible to connect multiple 'geom_smooth' layers and build a legend for it
+
+    + 'scale_color_manual()'
+    + 'scale_fill_manual()'
+
+```{r}
+model_colors <- RColorBrewer::brewer.pal(3, "Set1")
+model_colors  # returns hex values
+```
+
+**Comments**
+
++ returns hex values
++ then, create a plot with 3 different smoothers
++ map color and fill *within the aes() function* as the name of the smoother
+
+```{r}
+p0 <- ggplot(gapminder, mapping = aes(x = log(gdpPercap), y = lifeExp))
+
+p1 <- p0 + geom_point(alpha = 0.2) + 
+  geom_smooth(method = "lm", aes(color = "OLS", fill = "OLS")) + 
+  geom_smooth(method = "lm", formula = y ~ splines::bs(x, df = 3), 
+              aes(color = "Cubic Spline", fill = "Cubic Spline")) + 
+  geom_smooth(method = "loess", 
+              aes(color = "LOESS", fill = "LOESS"))
+
+p1 + scale_color_manual(name = "Models", values = model_colors) + 
+  scale_fill_manual(name = "Models", values = model_colors) + 
+  theme(legend.position = "top")
+```
+
+**Comments**
+
++ remember that the aes() function is for mapping variables to aesthetics
++ ggplot will properly construct the relevant guide if we call 'scale_color_manual()' and 'scale_fill_manual()'
++ these model-fitting features make ggplot very useful for exploratory work and make it straightforward to generate and compare model-based trends and other summaries as part of the process of descriptive data visualization
+
+## Look Inside Model Objects
+
++ Key objective always: get from however the object is stored to a tidy table of numbers that we can plot
++ we are always working with objects
++ objects have an internal structure consisting of named pieces
+
+```{r}
+gapminder
+str(gapminder)
+```
+
+**Comments**
+
++ statistical models in R have an internal structure
+
+```{r}
+out <- lm(formula = lifeExp~ gdpPercap + pop + continent, data = gapminder)
+```
+
+**Comments**
+
++ first argument is the formula for the model
++ 'lifeExp' is the dependent variable
++ tilde is used to designate the left and right sides of a model
+
+    + similar to facets, where ~ separates left and right sides
+    
+```{r}
+summary(out)
+#str(out)
+#out$coefficients
+#out$residuals
+#out$fitted.values
+```
+
+**Comments**
+
++ like any function, 'summary()' takes its input, performs some actions, and produces output
++ the output above is a mix of information stored inside the model object and partly information that the 'summary()' function has calculated and formatted for display on the screen
++ 'summary()' - selecting and printing only a small amount of core information, in comparison to what is stored in the model object
+
+## Get Model-Based Graphics Right
+
+
+
+
+
+
+
 
 # Draw Maps
 
