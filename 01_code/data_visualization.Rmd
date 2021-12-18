@@ -25,6 +25,8 @@ library(socviz)
 library(here)  # make it easier to work with files and subfolders while not needing to type full paths
 library(vtable)
 library(ggrepel)  # easier to work with text labels rather than using geom_text()
+library(broom)  # to take model objects and turn pieces of them into data frames to use in ggplot
+library(survival)  # survival data
 ```
 
 
@@ -2034,9 +2036,236 @@ summary(out)
 
 ## Get Model-Based Graphics Right
 
++ model results typically carry extra burden of interpretation and necessary background knowledge
++ there is no substitute for learning the statistics
 
+### Present your findings in substantive terms
 
++ Substantive results - showing results in a context where other variables in the analysis are held at sensible values, such as their *means* or *medians*
 
+    + Continuous variables - useful to generate predicted values that cover some substantively meaningful move across the distributions
+    + Unordered categorical variables - predicted values might be presented with respect to the modal category in the data
+    + often need to convert to a scale that the audience will understand
+    
+### Show your degree of confidence
+
++ model estimates come with various measures of precision, confidence, credence, or significance
++ 'geom_ribbon()' - draws filled areas and is useful for plotting ranges of y-axis values along some continuously varying x-axis
+
+### Show your data when you can
+
++ plotting multivariate models: 
+
+    1. We can show what is in effect a table of coefficients with associated measures of confidence, perhaps organizing the coefficients into meaningful groups, or by the size of the predicted association, or both
+    2. We can show the predicted values of some variables (rather than just a model's coefficients) across som range of interest
+    
+## Generate Predictions to Graph
+
++ 'predict()' - generic way of using model objects to produce this kind of prediction
+
+    + "generic" functions take their inputs and pass them along to more specific functions behind the scenes, ones that are suited to working with the particular kind of model object we have
+    + for 'predict()' to calculate the new values for us, it needs some new data to fit the model to
+    + must generate a new data from whose columns have the same names as the variables in the model's original data, but where the rows have new values
+    
++ 'expand.grid()' - generates and then will multiply out the full range of values for all combinations of the values we give it, thus creating a new data frame with the new data we need
+
+```{r}
+min_gdp <- min(gapminder$gdpPercap)
+max_gdp <- max(gapminder$gdpPercap)
+med_pop <- median(gapminder$pop)
+
+pred_df <- expand.grid(gdpPercap = (seq(from = min_gdp, to = max_gdp, length.out = 100)), 
+                       pop = med_pop, continent = c("Africa", "Americas", "Asia", "Europe", "Oceania"))
+
+dim(pred_df)  ## [1] 500  3
+
+head(pred_df)
+```
+
+**Comments**
+
++ 'dim()' - Dimensions of an Object. Retrieve or set the dimension of an object
+
+```{r}
+pred_out <- predict(object = out, newdata = pred_df, interval = "predict")
+head(pred_out)
+```
+
+**Comments**
+
++ 'predict()' - if we give the function our new data and model, without any further agrument, it will calculate the fitted values for every row in the data frame
++ using 'interval = "predict"' argument, it wil calculate 95% prediction intervals in addition to the point estimate
+
+```{r}
+pred_df <- cbind(pred_df, pred_out)
+head(pred_df)
+```
+
+**Comments**
+
++ this is definitely **NOT** best practice
++ this is a tidy data frame
+
+    + contains the predicted values from the model for the range of values we specified
+    
+```{r}
+p <- ggplot(data = subset(pred_df, continent %in% c("Europe", "Africa")), 
+            aes(x = gdpPercap, 
+                y = fit, ymin = lwr, ymax = upr, 
+                color = continent, 
+                fill = continent,
+                group = continent))
+
+p + geom_point(data = subset(gapminder, continent %in% c("Europe", "Africa")),
+               aes(x = gdpPercap, y = lifeExp, 
+                   color = continent),
+               alpha = 0.5, 
+               inherit.aes = FALSE) + 
+  geom_line() + 
+  geom_ribbon(alpha = 0.2, color = FALSE) + 
+  scale_x_log10(labels = scales::dollar)
+```
+
+**Comments**
+
++ OLS predictions
++ 'geom_ribbon()' - ymin and ymax defines the lower and upper limits of the prediction interval
++ 'predict()' - has the ability to work safely with different classes of model that underpines other helper functions in different libraries
+
+## Tidy Model Objects with Broom
+
++ 'broom' package - library of functions that help us get from the model results that R generates to numbers that we can plot
+
+    + takes model objects and turn pieces of them into data frames that can be used easily with ggplot
+    + takes ggplot's approach to tidy data and extends it to the model objects that R produces
+    
++ extracts 3 kinds of information: 
+
+    1. *component-level* information about aspects of the model itself, such as coefficients and t-statistics
+    2. obtain *observation-l;evel* information about the model's connection to the underlying data
+    3. get *model-level* information that summarizes the fit as a whole, such as an F-statistic, the model deviance, or the r-squared
+    
+### Get component-level statistics with tidy()
+
++ 'tidy()' - takes a model object and returns a data frame of component-level information
+
+```{r}
+out_comp <- tidy(out)
+out_comp %>% round_df()
+```
+
+**Comments**
+
++ We are now able to treat this data frame just like all the other data that we have seen so far, and use it to make a plot
+
+```{r}
+p <- ggplot(out_comp, mapping = aes(x = term, y = estimate))
+
+p + geom_point() + coord_flip()
+```
+
+**Comments**
+
++ confidence intervals would be nice to know
+
+```{r}
+out_conf <- tidy(out, conf.int = TRUE)
+out_conf %>% round_df()
+```
+
+**Comments**
+
++ %nin% -  "not in" operator
+
+    + opposite of %in% operator. selects only the items in a first vector of characters that are not in the second
+    
++ When fitting a model with categorical variables, R will create coefficient names based on the variable name and category name (e.g. 'continentAmericas')
++ 'prefix_strip()' - drops prefixes to create a new column variable that corresponds to the 'terms' column but has nicer labels
+
+```{r}
+out_conf <- subset(out_conf, term %nin% "(Intercept)")
+out_conf$nicelabs <- prefix_strip(out_conf$term, "continent")
+```
+
+**Comments**
+
++ 'geom_pointrange()' - displays some information about our confidence in the variable estimates, as opposed to just the coefficients
+
+```{r}
+p <- ggplot(out_conf, mapping = aes(x = reorder(nicelabs, estimate), 
+                                    y = estimate, ymin = conf.low, ymax = conf.high))
+p + geom_pointrange() +
+  coord_flip() + 
+  labs(x = "", y = "OLS Estimate")
+```
+
+**Comments**
+
++ this displays a nicer plot of OLS estimates and confidence intervals
+
+### Get observation-level statistics with augment()
+
++ values returned while using 'augment()' are all statistics calculated at the level of the original observations
+
+    + '.fitted' - the fitted values of the model 
+    + '.se.fit' - the standard errors of the fitted values
+    + '.resid' - the residuals
+    + '.hat' - the diagonal errors of the fitted values
+    + '.sigma' - an estimate of residual standard deviation when the corresponding observation is dropped from the model
+    + '.cooksd' - Cook's distance, a common regression diagnostic
+    + '.std.resid' - the standardized residuals
+    
+```{r}
+out_aug <- augment(out)
+head(out_aug) %>% round_df()
+out_aug <- augment(out, data = gapminder)
+head(out_aug) %>% round_df()
+```
+
+**Comments**
+
++ If some rows containing missing data were dropped to fit the model, then these will not be carried over to the augmented data frame
+
+```{r}
+p <- ggplot(data = out_aug, mapping = aes(x = .fitted, y = .resid))
+p + geom_point()
+```
+
+**Comments**
+
++ possible to plot the residuals vs. fitted values
+
+### Get model-level statistics with glance()
+
++ 'glance()' - organizes the information typically presented at the bottom of a model's 'summary()' output
+
+```{r}
+glance(out) %>% round_df()
+```
+
+**Comments**
+
++ Broom is able to tidy (and augment, and glance at) a wide range of model types
+
+```{r}
+out_cph <- coxph(Surv(time, status) ~ age + sex, data = lung)
+out_surv <- survfit(out_cph)
+```
+
+**Comments**
+
++ 'Surv()' function - creates the response or outcome variable for the proportional hazards model that is then fitted by the 'coxph()' function
++ 'survfit()' function - creates the survival curve from the model, much like we used 'predict()' to generate predicted values earlier
+
+```{r}
+#summary(out_cph)
+#summary(out_surv)
+out_tidy <- tidy(out_surv)
+
+p <- ggplot(data = out_tidy, mapping = aes(time, estimate))
+p + geom_line() + 
+  geom_ribbon(mapping = aes(ymin = conf.low, ymax = conf.high), alpha = 0.2)
+```
 
 
 
