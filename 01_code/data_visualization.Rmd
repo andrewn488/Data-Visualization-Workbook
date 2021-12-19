@@ -1895,8 +1895,8 @@ p + geom_point() +
 5. Get comfy with grouping, mutating, and summarizing data in pipelines. Create some grouped objects from the GSS data
 
 ```{r}
-gss_sm %>% group_by(race, degree) %>% summarize(N - n()) %>% 
-  mutate(pct = round(N / sum(N) * 100, 0))
+#gss_sm %>% group_by(race, degree) %>% summarize(N - n()) %>% 
+#  mutate(pct = round(N / sum(N) * 100, 0))
 ```
 
 

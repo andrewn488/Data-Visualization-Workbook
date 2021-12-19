@@ -1,0 +1,295 @@
+---
+title: "R 4 Data Science Notes"
+author: "Andrew Nalundasan"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: false
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# load libraries
+library(tidyverse)
+library(pryr)
+```
+
+# 17 - Introduction
+
++ Programming produces code, and code is a tool of communication
++ Code communicates meaning to other humans
++ Think of code as a vehicle for communication
++ When reviewing my code, is it obvious what my code does?
+
++ Lookahead:
+
+    1. Pipes
+    2. Functions
+        + extract out repeated code so that it can be easily reused
+    3. Data Structures
+        + master 4 common atomic vectors, 3 important S3 classes built on top of them, and understand the mysteries of the list and data frame
+    4. Iteration
+        + allows to repeat things over and over again
+
+# 18 - Pipes
+
+## Introduction
+
++ clearly expresses a sequence of multiple operations
+
+## Piping alternatives
+
+Little bunny Foo Foo
+Went hopping through the forest
+Scooping up the field mice
+And bopping them on the head
+
+```{r}
+# start by defining an object to represent little bunny Foo Foo
+#foo_foo <- little_bunny()
+
+# use a function for each key verb: hop(), scoop(), bop() to retell the story in code
+# simplest approach: save each step as a new object
+
+#foo_foo_1 <- hop(foo_foo, through = forest)
+#foo_foo_2 <- scoop(foo_foo_1, up = field_mice)
+#foo_foo_3 <- bop(foo_foo_2, on = head)
+```
+
+**Comments**
+
++ downside to this approach - need to name each intermediate element
++ if needing to add numeric suffixes to the objects, it's a bad idea
+
+    1. the code is cluttered with unimportant names
+    2. need to carefully increment the suffix on each line
+    
+```{r}
+diamonds <- ggplot2::diamonds
+diamonds2 <- diamonds %>% 
+  dplyr::mutate(price_per_carat = price / carat)
+
+pryr::object_size(diamonds)
+pryr::object_size(diamonds2)
+pryr::object_size(diamonds, diamonds2)
+
+```
+
+**Comments**
+
++ 'pryr::object_size()' gives the memory occupied by all of its arguments
++ 'diamonds2' has 10 columns in common with 'diamonds'
+
+```{r}
+diamonds$carat[1] <- NA
+pryr::object_size(diamonds)
+pryr::object_size(diamonds2)
+pryr::object_size(diamonds, diamonds2)
+```
+
+**Comments**
+
++ need to use 'pryr::object_size' rather than just 'object_size' because 'object_size' only takes 1 argument
+
+### Overwrite the original
+
+```{r}
+#foo_foo <- hop(foo_foo, through = forest)
+#foo_foo <- scoop(foo_foo, up = field_mice)
+#foo_foo <- bop(foo_foo, on = head)
+```
+
+**Comments**
+
++ Debugging is painful with this approach. Everything is named the same so can't tell where the bug is coming from
++ repetition of names obscures what's changing on each line
+
+### Function composition
+
+```{r}
+#bop(
+#  scoop(
+#    hop(foo_foo, through = forest),
+#    up = field_mice
+#  ), 
+#  on = head
+#)
+```
+
+**Comments**
+
++ difficult to read from inside-out, right-to-left
++ difficult for a human to read
+
+### Use the pipe
+
+```{r}
+foo_foo %>%
+  hop(through = forest) %>%
+  scoop(up = field_mice) %>%
+  bop(on = head)
+  
+```
+
+**Comments**
+
++ this approach focuses on verbs, not nouns
++ this can be read in the following way: 
+
+    + "Foo Foo hops, then scoops, then bops."
+    
+## When not to use the pipe
+
++ use another tool when:
+
+    1. Pipes are longer than 10 steps. Intermediate objects with meaningful names will make debugging easier
+    2. If you have multiple inputs or outputs. If there isn't one primary object being transformed, but two or more object being combined together, don't use the pipe
+    3. If working towards a directed graph with a complex dependency structure
+    
+# 19 - Functions
+
++ Functions allow to automate common tasks in a more powerful and general way rather than copy/paste
+
+## When should you write a function?
+
++ should write a function whenever copy/paste something more than 2x
+
+```{r}
+df <- tibble::tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+
+df$a <- (df$a - min(df$a, na.rm = TRUE)) / 
+  (max(df$a, na.rm = TRUE) - min(df$a, na.rm = TRUE))
+df$b <- (df$b - min(df$b, na.rm = TRUE)) / 
+  (max(df$b, na.rm = TRUE) - min(df$b, na.rm = TRUE))
+df$c <- (df$c - min(df$c, na.rm = TRUE)) / 
+  (max(df$c, na.rm = TRUE) - min(df$c, na.rm = TRUE))
+df$d <- (df$d - min(df$d, na.rm = TRUE)) / 
+  (max(df$d, na.rm = TRUE) - min(df$d, na.rm = TRUE))
+```
+
+**Comments**
+
++ There was an intentional bug in the df$b statement. Fixed it
++  To write a function when analyzing repeated code, note how many inputs it takes
+
+```{r}
+x <- df$a
+(x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
+```
+
+**comments**
+
++ Pulling out intermediate calculations into named variables is a good practice because it makes it more clear what the code is doing
++ make this extraction then turn it into a function
+
+```{r}
+rescale01 <- function(x) {
+  rng <- range(x, na.rm = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+rescale01(c(0, 5, 10))
+```
+
+**Comments**
+
++ 3 key steps to creating a new function:
+
+    1. You need to pick a **name** for the function. Here we've used 'rescale01' because this function rescales a vector to lie between 0 and 1
+    2. You list the inputs, or **arguments**, to the function inside 'function'. Here we have just one argument. If we had more the call would like lik 'function(x, y, z)'
+    3. You place the code you have developed in the **body** of the function, a '{' block that immediatly follows 'function(...)'
+    
++ Always easier to start with working code and turn it into a function
++ Always more difficult to create a function and then try to make it work
++ Always test your function with sample inputs
+
+```{r}
+rescale01(c(-10, 0, 10))
+rescale01(c(1, 2, 3, NA, 5))
+```
+
++ Simplify the code from the beggining like so: 
+
+```{r}
+df$a <- rescale01(df$a)
+df$b <- rescale01(df$b)
+df$c <- rescale01(df$c)
+df$d <- rescale01(df$d)
+```
+
++ Benefit to functions: only need to change in one place if requirements change
+
+```{r}
+x <- c(1:10, Inf)
+rescale01(x)
+```
+
++ Only need to fix one thing to mitigate the 'NaN'
+
+```{r}
+rescale01 <- function(x){
+  rng <- range(x, na.rm = TRUE, finite = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+rescale01(x)
+```
+
++ 'NaN' turned into 'Inf'
+
+### Exercises
+
+1. Why is 'TRUE' not a parameter to 'rescale01()'? What would happen if 'x' contained a single missing value, and 'na.rm' was FALSE?
+
+2. In the second variant of 'rescale01()', infinite values are left unchanged. Rewrite 'rescale01()' so that '-Inf' is mapped to 0 and 'Inf' is mapped to 1
+
+3. Practice turning the following code snippets into functions. Think about what each function does. What would you call it? How many arguments does it need? Can you rewrite it to be more expressive or less duplicative?
+
+4. write your own functions to compute the variance and skewness of a numeric vector. 
+
+5. Write 'both_na()', a function that takes two vectors of the same length and returns the number of positions that have an 'NA' in both vectors.
+
+6. What do the following functions do? Why are they useful even though they are so short?
+
+## Functions are for humans and computers
+
++ must name functions clearly
++ function names should be verbs and arguments should be nouns
++ be consistent with snake_case
++ family of functions that do similar things - make certain they have consistent names and arguments
+
+    + use common prefix
+    + previx better than suffix so can utilize autocomplete
+
++ use # comments to explain the 'why' of the code. Not the 'what' or the 'how'
+
+## Conditional execution
+
++ if statement stuff
++ || <- "or" 
++ && <- "and"
++ use || and && to combine multiple logical expressions
++ writing these out is like list comprehension but 'if' comprehension
+
+## Function arguments
+
+
+
+
+```{r}
+
+```
+
+
