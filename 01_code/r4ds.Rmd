@@ -285,11 +285,77 @@ rescale01(x)
 
 ## Function arguments
 
-
-
++ Generally, 'data' arguments should come first
++ 'detail' arguments should go on the end and usually have default values
 
 ```{r}
+# Compute confidence interval around mean using normal approximation
+mean_ci <- function(x, conf = 0.95){
+  se <- sd(x) / sqrt(length(x))
+  alpha <- 1 - conf
+  mean(x) + se * qnorm(c(alpha / 2, 1 - alpha / 2))
+}
 
+x <- runif(100)
+mean_ci(x)
+mean_ci(x, conf = 0.99)
 ```
+
++ typically omit the names of the data arguments
++ if overriding default value of a detail argument, best practice to write it out
++ commonly used function arguments:
+
+    + 'x', 'y', 'z' - vectors
+    + 'w' - vector of weights
+    + 'df' - data frame
+    + 'i', 'j' - numeric indices (typically rows and columns)
+    + 'n' - length, or number of rows
+    + 'p' - number of columns
+    
+### Checking values
+
++ use 'stop()' similar to BREAK: and CONTINUE: in python
++ use 'stopifnot()' for efficiency and robustness
+
+    + assert what should be true rather than checking for what might be wrong
+    
++ Example code utilizing "..." operator in function
+
+```{r}
+commas <- function(...) stringr::str_c(..., collapse = ", ")
+commas(letters[1:10])
+#> [1] "a, b, c, d, e, f, g, h, i, j"
+
+rule <- function(..., pad = "-") {
+  title <- paste0(...)
+  width <- getOption("width") - nchar(title) - 5
+  cat(title, " ", stringr::str_dup(pad, width), "\n", sep = "")
+}
+rule("Important output")
+#> Important output -----------------------------------------------------------
+```
+
+## Return values
+
++ consider 2 things when returning a value:
+
+    1. Does returning early make your function easier to read?
+    2. Can you make your function pipeable?
+    
++ if trying to write pipeable functions, must think of return value
+
+    + 2 types: 
+        1. **transformations** - object is passed to the function's first argument and a modified object is returned 
+        2. **side-effects** - passed object is not transformed. Instead, the function performs an action on the object, like drawing a plot or saving a file. These functions "invisibly" return the first argument, so that while they're not printed, they can still be used in a pipeline
+        
+## Environment
+
++ R uses **lexical scoping** rules
+
+    + R looks in the **environment** where the function was defined to pass in arguments
+
+
+
+
 
 
