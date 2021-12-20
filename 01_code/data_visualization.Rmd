@@ -1860,7 +1860,6 @@ p + geom_point() +
 
 + purely cosmetic decisions - use 'theme()' function
 
-
 ```{r}
 p <- ggplot(organdata, mapping = aes(x = roads, y = donors, color = world))
 p + geom_point() + 
@@ -2267,6 +2266,111 @@ p + geom_line() +
   geom_ribbon(mapping = aes(ymin = conf.low, ymax = conf.high), alpha = 0.2)
 ```
 
+### Grouped Analysis and List Columns
+
++ 'Broom' makes it possible to quickly fit models to different subsets of your data and get consistent and usable tables of results out the other end
++ gapminder data is organized by 'country-years' - the unit over observation in the rows
+
+```{r}
+eu77 <- gapminder %>% 
+  filter(continent == 'Europe', year == 1977)
+
+fit <- lm(lifeExp ~ log(gdpPercap), data = eu77)
+summary(fit)
+```
+
+**Comments**
+
++ This looks at the gapminder data by examining the relationship between life expectancy and GDP by *continent*, for each year in the data
++ We start with our table of data and then %>% group the countries by 'continent' and 'year' using the 'group_by()' function
++ our data is reorganized first by continent, and within continent by year
+
+```{r}
+out_let <- gapminder %>% 
+  group_by(continent, year) %>% 
+  nest()
+
+out_le
+```
+
+**Comments**
+
++ 'nest()' - resulting object has the tabular form we expect (tibble)
++ *list column* - useful for bundling together complex objects (structured, such as tibbles)
++ look at the data by filtering the data and then *unnesting* the list column
+
+```{r}
+out_le %>% filter(continent == "Europe" & year == 1977) %>% 
+  unnest()
+```
+
+**Comments**
+
++ *list columns* - useful because we can act on them in a compact and tidy way
++ pass functions along to each row of the *list column* and make something happen
+
+```{r}
+# helper function to estimate a particular OLS model on some data
+fit_ols <- function(df){
+  lm(lifeExp ~ log(gdpPercap), data = df)
+}
+
+out_le <- gapminder %>% 
+  group_by(continent, year) %>% 
+  nest() %>% 
+  mutate(model = map(data, fit_ols))
+
+out_le
+```
+
+**Comments**
+
++ functions are a kind of object
+
+
+```{r}
+fit_ols <- function(df){
+  lm(lifeExp ~ log(gdpPercap), data = df)
+}
+
+out_tidy <- gapminder %>% 
+  group_by(continent, year) %>% 
+  nest() %>% 
+  mutate(model = map(data, fit_ols),
+         tidied = map(model, tidy)) %>% 
+  unnest(tidied, .drop = TRUE) %>% 
+  filter(term %nin% "(Intercept)" &
+           continent %nin% "Oceania")
+
+out_tidy %>% sample_n(5, replace = TRUE)
+
+```
+
+**Comments**
+
++ error in my 'sample_n()' function
++ added 'replace = TRUE' as suggested by warning message
++ output is different from the book
+
+```{r}
+p <- ggplot(data = out_tidy, 
+            mapping = aes(x = year, y = estimate, 
+                          ymin = estimate - 2*std.error,
+                          ymax = estimate + 2*std.error,
+                          group = continent, color = continent))
+
+p + geom_pointrange(position = position_dodge(width = 1)) + 
+  scale_x_continuous(breaks = unique(gapminder$year)) + 
+  theme(legend.position = "top") + 
+  labs(x = "Year", y = "Estimate", color = "Continent")
+```
+
+**Comments**
+
++ The call to 'position_dodge()' within 'geom_pointrange()' allows the point ranges for each continent to be near one another within years, instead of being plotted right on top of one another
++ this approach is good when we're interested in seeing how OLS performs against some other model specification
+
+## Plot Marginal Effects
 
 
 
