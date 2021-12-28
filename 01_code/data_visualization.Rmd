@@ -27,8 +27,14 @@ library(vtable)
 library(ggrepel)  # easier to work with text labels rather than using geom_text()
 library(broom)  # to take model objects and turn pieces of them into data frames to use in ggplot
 library(survival)  # survival data
-```
+library(margins)  # to make partial or marginal effects plots
+library(survey)  # to use functions from this package
+library(srvyr)  # to use functions from survey and compatible with dplyr
+library(coefplot)  # to explore default plots rather than using ggplot
+library(GGally)  # to produce generalized pair plots (visual correlation matrix)
+library(maps)  # to plot maps
 
+```
 
 ```{r install, eval = FALSE}
 
@@ -2290,7 +2296,7 @@ out_let <- gapminder %>%
   group_by(continent, year) %>% 
   nest()
 
-out_le
+out_let
 ```
 
 **Comments**
@@ -2300,7 +2306,7 @@ out_le
 + look at the data by filtering the data and then *unnesting* the list column
 
 ```{r}
-out_le %>% filter(continent == "Europe" & year == 1977) %>% 
+out_let %>% filter(continent == "Europe" & year == 1977) %>% 
   unnest()
 ```
 
@@ -2315,17 +2321,19 @@ fit_ols <- function(df){
   lm(lifeExp ~ log(gdpPercap), data = df)
 }
 
-out_le <- gapminder %>% 
+out_let <- gapminder %>% 
   group_by(continent, year) %>% 
   nest() %>% 
   mutate(model = map(data, fit_ols))
 
-out_le
+out_let
 ```
 
 **Comments**
 
 + functions are a kind of object
++ **map** - think of "map" as a "for...loop"
++ mapping functions to arrays is more easily integrated into a sequence of data transformations
 
 
 ```{r}
@@ -2372,9 +2380,542 @@ p + geom_pointrange(position = position_dodge(width = 1)) +
 
 ## Plot Marginal Effects
 
++ estimating and plotting *partial* or *marginal effects* from a model has become a common way of presenting accurate and interpretively useful predictions
++ use 'relevel()' function to recode specific factor within a categorical variable to set a reference category
 
+```{r}
+gss_sm$polviews_m <- relevel(gss_sm$polviews, ref = "Moderate")
+
+out_bo <- glm(obama ~ polviews_m + sex*race, family = "binomial", data = gss_sm)
+
+summary(out_bo)
+```
+
+**Comments**
+
++ 'glm()' used to fit the model
++ interaction term between 'race' and 'sex' 
++ calculate the marginal effects for each variable using 'margins()' 
+
+```{r}
+bo_m <- margins(out_bo)
+summary(bo_m)
+```
+
+**Comments**
+
++ using 'margins()', calculate the marginal effects for each variable
+
+```{r}
+plot(bo_m)
+```
+
+**Comments**
+
++ using base R, this is an output similar to stata
+
+```{r}
+bo_gg <- as_tibble(summary(bo_m))
+prefixes <- c("polviews_m", "sex")
+bo_gg$factor <- prefix_strip(bo_gg$factor, prefixes)
+bo_gg$factor <- prefix_replace(bo_gg$factor, "race", "Race: ")
+
+bo_gg %>% select(factor, AME, lower, upper)
+```
+
+**Comments**
+
++ tidy up the data
++ take results from 'margins()' and plot thme myself
++ convert to a tibble using 'as_tibble()' 
++ use 'prefix_strip()' and 'prefix_replace()' to tidy labels
++ strip 'polviews_m' and 'sex' prefixes and adjust the 'race' prefix
++ this 9 x 4 tibble is now in format that can be plotted
+
+```{r}
+p <- ggplot(data = bo_gg, aes(x = reorder(factor, AME), 
+                              y = AME, ymin = lower, ymax = upper))
+
+p + geom_hline(yintercept = 0, color = "gray80") + 
+  geom_pointrange() + coord_flip() + 
+  labs(x = NULL, y = "Average Marginal Effect")
+```
+
+**Comments**
+
++ displays the average marginal effect
+
+```{r}
+pv_cp <- cplot(out_bo, x = "sex", draw = FALSE)
+
+p <- ggplot(data = pv_cp, aes(x = reorder(xvals, yvals), 
+                              y = yvals, ymin = lower, ymax = upper))
+
+p + geom_hline(yintercept = 0, color = "gray80") + 
+  geom_pointrange() + coord_flip() + 
+  labs(x = NULL, y = "Conditional Effect")
+```
+
+**Comments**
+
++ Plots just the conditional effects for a particular variable
++ margins package is very powerful. Strongly recommended to add to the quiver
+
+## Plots from Complex Surveys
+
++ practice using 'survey' functions on 'gss_lon' data
+
+```{r}
+options(survey.lonely.psu = "adjust")
+options(na.action="na.pass")
+
+gss_wt <- subset(gss_lon, year > 1974) %>% 
+  mutate(stratvar = interaction(year, vstrat)) %>% 
+  as_survey_design(ids = vpsu, 
+                   strata = stratvar,
+                   weights = wtssall, 
+                   nest = TRUE)
+```
+
+**Comments**
+
++ 2 options set at the beginning provides some information to the 'survey' library about how to behave
++ other tidying operations to get gss_lon data in correct format
+
+```{r}
+out_grp <- gss_wt %>% 
+  filter(year %in% seq(1976, 2016, by = 4)) %>% 
+  group_by(year, race, degree) %>% 
+  summarize(prop = survey_mean(na.rm = TRUE))
+
+out_grp
+```
+
+**Comments**
+
++ results returned in 'out_grp' include standard errors
++ it is possible to ask 'survey_mean()' to calculate confidence intervals if I wanted
++ grouping with 'group_by()' lets us calculate counts or means for the innermost variable, grouped by the next variable "up" or "out" 
+
+    + 'degree' is grouped by 'race' such that the proportions for 'degree' will sum to 1 for each group in 'race'
+    + this is done separately for each value of 'year'
+    
+```{r}
+out_mrg <- gss_wt %>% 
+  filter(year %in% seq(1976, 2016, by = 4)) %>% 
+  mutate(racedeg = interaction(race, degree)) %>% 
+  group_by(year, racedeg) %>% 
+  summarize(prop = survey_mean(na.rm = TRUE))
+
+out_mrg
+```
+
+**Comments**
+
++ 'interaction()' argument produces variable labels that are a compound of the two variables we interacted, with each combination of categories separated by a period
++ see these categories in 2 separate columns (1 for race, 1 for education) - use 'separate()' 
+
+
+```{r}
+out_mrg <- gss_wt %>% 
+  filter(year %in% seq(1976, 2016, by = 4)) %>% 
+  mutate(racedeg = interaction(race, degree)) %>% 
+  group_by(year, racedeg) %>% 
+  summarize(prop = survey_mean(na.rm = TRUE)) %>% 
+  separate(racedeg, sep = "\\.", into = c("race", "degree"))
+
+out_mrg
+```
+
+**Comments**
+
++ 'separate()' takes the 'racedeg' column, splits each value when it sees a period, and reorganizes the results into 2 columns, 'race' and 'degree'
++ use backslash character as an escape '\\'
+
+```{r}
+p <- ggplot(data = subset(out_grp, race %nin% "Other"), 
+            mapping = aes(x = degree, y = prop,
+                          ymin = prop - 2*prop_se, 
+                          ymax = prop + 2*prop_se, 
+                          fill = race, 
+                          color = race, 
+                          group = race))
+
+dodge <- position_dodge(width=0.9)
+
+p + geom_col(position = dodge, alpha = 0.2) + 
+  geom_errorbar(position = dodge, width = 0.2) + 
+  scale_x_discrete(labels = scales::wrap_format(10)) + scale_y_continuous(labels = scales::percent) + 
+  scale_color_brewer(type = "qual", palette = "Dark2") + 
+  scale_fill_brewer(type = "qual", palette = "Dark2") + 
+  labs(title = "Educational Attanment by Race", 
+       subtitle = "GSS 1976-2016",
+       fill = "Race",
+       color = "Race", 
+       x = NULL, y = "Percent") + 
+  facet_wrap(~ year, ncol = 2) + 
+  theme(legend.position = "top")
+```
+
+**Comments**
+
++ Weighted estimates of educational attainment for white and blacks, GSS selected years 1976-2016
++ faceting bar plots is a bad idea
++ faceting many bar plots is an even worse idea
++ difficult to make comparisons of the categorical bars in each facet
++ 'scales::wrap_format()' wraps the categories plotted on the x-axis
++ 'scales::percent' converts the proportion to a percentage
+
+```{r}
+p <- ggplot(data = subset(out_grp, race %nin% "Other"),
+            mapping = aes(x = year, y = prop, ymin = prop - 2*prop_se,
+                          ymax = prop + 2*prop_se, fill = race, color = race, 
+                          group = race))
+
+p + geom_ribbon(alpha = 0.3, aes(color = NULL)) + 
+  geom_line() + 
+  facet_wrap(~ degree, ncol = 1) + 
+  scale_y_continuous(labels = scales::percent) + 
+  scale_color_brewer(type = "qual", palette = "Dark2") + 
+  scale_fill_brewer(type = "qual", palette = "Dark2") + 
+  labs(title = "Educational Attainment by Race", 
+       subtitle = "GSS 1976-2016", fill = "Race", 
+       color = "Race", x = NULL, y = "Percent") + 
+  theme(legend.position = "top")
+```
+
+**Comments**
+
++ dimensions are wack
++ too lazy to troubleshoot this
+
+## Where to Go Next
+
++ The challenge isn't in plotting the data. The challenege is in calculating and extracting the right numbers
++ it is a requirement that you understand the model you are fitting and the function you use to fit it, especially when: 
+
+    + using interactions
+    + using cross-level effects
+    + using transformations of the predictor
+    + using a response to scales
+    
+
+### Default plots for models
+
++ uses base R or the "lattice" library
+
+```{r}
+out <- lm(formula = lifeExp ~ log(gdpPercap) + pop + continent, data = gapminder)
+
+plot(out, which = c(1, 2), ask = FALSE)
+```
+
+**Comments**
+
++ 'which()' - selects the first 2 of 4 default plots for this kind of model
++ "ggfortify" and "coefplot" packages are worth having knowledge on
+
+```{r}
+out <- lm(formula = lifeExp ~ log(gdpPercap) + log(pop) + continent, data = gapminder)
+
+coefplot(out, sort = "magnitude", intercept = FALSE)
+```
+
+**Comments**
+
++ neat coefficient plot
++ don't like the grid background 
+
+### Extensions to ggplot
+
++ GGally package helps make complex plots a little easier
++ generalized pair plots - like a visual correlation matrix
++ only simple when all variables are continuous
+
+```{r}
+organdata_sm <- organdata %>% select(donors, pop_dens, pubhealth, roads, consent_law)
+
+ggpairs(data = organdata_sm, mapping = aes(color = consent_law),
+        upper = list(continuous = wrap("density"), combo = "box_no_facet"),
+        lower = list(continuous = wrap("points"), combo = wrap("dot_no_facet")))
+```
+
+**Comments**
+
++ never use multipanel plots like these in a final presentation
++ used primarily for exploration
++ quickly investigate aspects of a data set
 
 # Draw Maps
+
++ R can work with geographical data and ggplot can make choropleth maps
++ colorscale often has no midpoint unless defined
++ maps can show data for the same event, but convey different impressions
++ 2 problems: 
+
+    1. Underlying quantities of interest are only partly spatial
+        + the number of electoral college votes won and the share of votes cast within a state or county are expressed in spatial terms, but ultimately it is the number of people within thos regions that matter
+    2. Regions themselves are of differing sizes and they differ in a way that is not well correlated with the magnitudes of the underlying votes
+    
++ Often a map is like a weird grid that you are forced to conform to even though you know it systematically misrepresents what you want to show
++ begin working with "election" dataset
+
+```{r}
+# look at the data
+head(election, 10)
+vtable(election)
+summary(election)
+```
+
+## Map U.S. State-Level Data
+
+```{r}
+election %>% select(state, total_vote, r_points, pct_trump, party, census) %>% 
+  sample_n(5)  # sample 5 rows at random
+```
+
+**Comments**
+
++ FIPS code is a federal code that numbers states and territories of the US
++ County level has additional 4 digits
++ each tounty has a unique 6-digit identifier, with the first 2 digist representing the state
+
+```{r}
+# Hex color codes for Dem Blue and Rep Red
+party_colors <- c("#2E74C0", "#CB454A")
+
+p0 <- ggplot(data = subset(election, st %nin% "DC"), 
+             mapping = aes(x = r_points, 
+                           y = reorder(state, r_points), 
+                           color = party))
+
+p1 <- p0 + geom_vline(xintercept = 0, color = "gray30") +
+  geom_point(size = 2)
+
+p2 <- p1 + scale_color_manual(values = party_colors)
+
+p3 <- p2 + scale_x_continuous(breaks = c(-30, -20, -10, 0, 10, 20, 30, 40),
+                              labels = c("30\n (Clinton)", "20", "10", "0",
+                                         "10", "20", "30", "40\n(Trump)"))
+
+p3 + facet_wrap(~ census, ncol=1, scales="free_y") + 
+  guides(color=FALSE) + labs(x = "Point Margin", y = "") + 
+  theme(axis.text=element_text(size=8))
+```
+
+**Comments**
+
++ you don't have to represent spatial data spatially
++ this is a state-level dot plot faceted by region
++ the process is broken up by making intermediate objects (p0, p1, p2) along the way
++ when removing "scales = 'free_y'", the y-axis becomes cluttered with state names. It seems that ALL state names are included when 'free_y' argument is omitted
++ when removing the call to 'scale_color_manual()', R uses default color scheme
+
+```{r}
+us_states <- map_data("state")
+head(us_states)
+dim(us_states)  # dimensions of an objects
+```
+
+**Comments**
+
++ look at the data, and find the dimensions of the object
++ this is just a data frame
++ this df has more than 15,000 rows because you need a lot of lines to draw a good-looking map
+
+```{r}
+p <- ggplot(data = us_states, mapping = aes(x = long, y = lat, group = group))
+
+p + geom_polygon(fill = "white" , color = "black")
+```
+
+**Comments**
+
++ make a blank state map, using 'geom_polygon()'
++ plotted with lat and long points
+
+    + these are there as scale elements mapped to the x- and y- axes
+
+
+```{r}
+p <- ggplot(data = us_states, aes(x = long, y = lat, group = group, fill = region))
+
+p + geom_polygon(color = "gray90", size = 0.1) + 
+  guides(fill = FALSE)
+```
+
+**Comments**
+
++ map 'fill' aesthetic' to 'region' and change the 'color' mapping to a light gray and thin the lines to make the state borders pop pop
++ default is plotted using Mercator projection
++ can transform the default projection used by 'geom_polygon()' via the 'coord_map()' function
++ we typically drawn our plots on a simple Cartesian plane
++ transforming projections means going from sphere object to a flat object or vice versa
+
+```{r}
+p <- ggplot(data = us_states, 
+            mapping = aes(x = long, y = lat, 
+                          group = group, fill = region))
+
+p + geom_polygon(color = "gray90", size = 0.1) + 
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) + 
+  guides(fill = FALSE)
+```
+
+**Comments**
+
++ when playing the 'lat0' and 'lat1' values, the map gets stretched and squished
++ to get our own data onto the map, we must merge our data with the underlying df (1500+ rows df)
++ must 'merge' or 'left_join()' our own data with underlying data
+
+    + must know that the values of the key variables you are matching on really do exactly correspond to one another
+    
++ merging / left_join is case sensitive
+
+    + convert 'region' variable to lower case using 'tolower()' 
+    + use left_join to merge the datasets
+    
++ always look at the data when transforming data. never do this blindly
++ maps that look broken when plotted are usually caused by merge errors
+
+```{r}
+election$region <- tolower(election$state)
+
+us_states_elec <- left_join(us_states, election)
+
+# look at the data
+head(election, 10)
+head(us_states_elec, 10)
+```
+
+**Comments**
+
++ how does this chunk know what data I'm referencing?
++ now that everything is in one big data frame, it can be plotted
+
+```{r}
+p <- ggplot(data = us_states_elec,
+            aes(x = long, y = lat, 
+                group = group, fill = party))
+
+p + geom_polygon(color = "gray90", size = 0.1) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) + 
+  theme(legend.position = "top")
+```
+
+**Comments**
+
++ still need to remove the grid lines and axis labels
+
+```{r}
+p0 <- ggplot(data = us_states_elec, 
+             mapping = aes(x = long, y = lat, 
+                           group = group, fill = party))
+
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+p2 <- p1 + scale_fill_manual(values = party_colors) + 
+  labs(title = "Election Results 2016", fill = NULL)
+
+#p2 + theme_map()
+p2
+```
+
+**Comments**
+
++ 'theme_map()' throwing error. R can't find this function
+
+```{r}
+p0 <- ggplot(data = us_states_elec, 
+             mapping = aes(x = long, y = lat, group = group, fill = pct_trump))
+
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) + 
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+p1 + labs(title = "Trump vote") + labs(fill = "Percent")
+```
+
+**Comments**
+
++ had to omit 'theme_map' from p1 + ... line
++ this map draws in default colors (blue) with a gradient on Percent because it's a continuous variable
++ gradient flows in wrong direction - higher % votes should have darker color
+
+```{r}
+p2 <- p1 + scale_fill_gradient(low = "white", high = "#CB454A") + 
+  labs(title = "Trump vote")
+
+p2 + labs(fill = "Percent")
+```
+
+**Comments**
+
++ omitted 'theme_map()' again
++ changed default color to the hex color (red)
++ set the gradient fill to be more interpretable
+
+```{r}
+p0 <- ggplot(data = us_states_elec,
+             mapping = aes(x = long, y = lat, group = group, fill = d_points))
+
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) + 
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+p2 <- p1 + scale_fill_gradient2() + labs(title = "Winning margins")
+p2 + labs(fill = "Percent")
+
+p3 <- p1 + scale_fill_gradient2(low = "red", mid = scales::muted("purple"),
+                                high = "blue", breaks = c(-25, 0, 25, 50, 75)) + 
+  labs(title = "Winning margins")
+
+p3 + labs(fill = "Percent")
+```
+
+**Comments**
+
++ DC has highest points margin in favor of the Democrats of any unit of observation in the data
++ If DC is omitted, we'll see that our scale shifts in a way that does not just affect the top of the blue end but recenters the whole gradient and makes the red side more vivid as a result
+
+    + power of omitting data!
+    
+```{r}
+p0 <- ggplot(data = subset(us_states_elec, 
+                           region %nin% "district of columbia"), 
+             aes(x = long, y = lat, group = group, fill = d_points))
+
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+p2 <- p1 + scale_fill_gradient2(low = "red", 
+                                mid = scales::muted("purple"), 
+                                high = "blue") + 
+  labs(title = "Winning margins")
+
+p2 + labs(fill = "Percent")
+```
+    
+**Comments**
+
++ here, we're shoing votes spatially, but what really matters is the number of people who voted in each state
+
+## America's Ur-choropleths
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r}
 
