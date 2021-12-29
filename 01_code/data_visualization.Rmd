@@ -33,6 +33,9 @@ library(srvyr)  # to use functions from survey and compatible with dplyr
 library(coefplot)  # to explore default plots rather than using ggplot
 library(GGally)  # to produce generalized pair plots (visual correlation matrix)
 library(maps)  # to plot maps
+library(cowplot)  # to apply 'theme_map()' to maps
+library(statebins)  # to plot statebin maps
+library(viridis)  # to use scale functions and color palettes
 
 ```
 
@@ -2292,11 +2295,11 @@ summary(fit)
 + our data is reorganized first by continent, and within continent by year
 
 ```{r}
-out_let <- gapminder %>% 
+out_le <- gapminder %>% 
   group_by(continent, year) %>% 
   nest()
 
-out_let
+out_le
 ```
 
 **Comments**
@@ -2306,7 +2309,7 @@ out_let
 + look at the data by filtering the data and then *unnesting* the list column
 
 ```{r}
-out_let %>% filter(continent == "Europe" & year == 1977) %>% 
+out_le %>% filter(continent == "Europe" & year == 1977) %>% 
   unnest()
 ```
 
@@ -2315,18 +2318,18 @@ out_let %>% filter(continent == "Europe" & year == 1977) %>%
 + *list columns* - useful because we can act on them in a compact and tidy way
 + pass functions along to each row of the *list column* and make something happen
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 # helper function to estimate a particular OLS model on some data
-fit_ols <- function(df){
-  lm(lifeExp ~ log(gdpPercap), data = df)
-}
+#fit_ols <- function(df){
+#  lm(lifeExp ~ log(gdpPercap), data = df)
+#}
 
-out_let <- gapminder %>% 
-  group_by(continent, year) %>% 
-  nest() %>% 
-  mutate(model = map(data, fit_ols))
+#out_le <- gapminder %>% 
+#  group_by(continent, year) %>% 
+#  nest() %>% 
+#  mutate(model = map(data, fit_ols))
 
-out_let
+#out_le
 ```
 
 **Comments**
@@ -2334,23 +2337,24 @@ out_let
 + functions are a kind of object
 + **map** - think of "map" as a "for...loop"
 + mapping functions to arrays is more easily integrated into a sequence of data transformations
++ 12/29/2021: error in this chunk. need to debug
 
 
-```{r}
-fit_ols <- function(df){
-  lm(lifeExp ~ log(gdpPercap), data = df)
-}
+```{r eval=FALSE, include=FALSE}
+#fit_ols <- function(df){
+#  lm(lifeExp ~ log(gdpPercap), data = df)
+#}
 
-out_tidy <- gapminder %>% 
-  group_by(continent, year) %>% 
-  nest() %>% 
-  mutate(model = map(data, fit_ols),
-         tidied = map(model, tidy)) %>% 
-  unnest(tidied, .drop = TRUE) %>% 
-  filter(term %nin% "(Intercept)" &
-           continent %nin% "Oceania")
+#out_tidy <- gapminder %>% 
+#  group_by(continent, year) %>% 
+#  nest() %>% 
+#  mutate(model = map(data, fit_ols),
+#         tidied = map(model, tidy)) %>% 
+#  unnest(tidied, .drop = TRUE) %>% 
+#  filter(term %nin% "(Intercept)" &
+#           continent %nin% "Oceania")
 
-out_tidy %>% sample_n(5, replace = TRUE)
+#out_tidy %>% sample_n(5, replace = TRUE)
 
 ```
 
@@ -2359,24 +2363,26 @@ out_tidy %>% sample_n(5, replace = TRUE)
 + error in my 'sample_n()' function
 + added 'replace = TRUE' as suggested by warning message
 + output is different from the book
++ 12/29/2021: error in this chunk. need to debug
 
-```{r}
-p <- ggplot(data = out_tidy, 
-            mapping = aes(x = year, y = estimate, 
-                          ymin = estimate - 2*std.error,
-                          ymax = estimate + 2*std.error,
-                          group = continent, color = continent))
+```{r eval=FALSE, include=FALSE}
+#p <- ggplot(data = out_tidy, 
+#            mapping = aes(x = year, y = estimate, 
+#                          ymin = estimate - 2*std.error,
+#                          ymax = estimate + 2*std.error,
+#                          group = continent, color = continent))
 
-p + geom_pointrange(position = position_dodge(width = 1)) + 
-  scale_x_continuous(breaks = unique(gapminder$year)) + 
-  theme(legend.position = "top") + 
-  labs(x = "Year", y = "Estimate", color = "Continent")
+#p + geom_pointrange(position = position_dodge(width = 1)) + 
+#  scale_x_continuous(breaks = unique(gapminder$year)) + 
+#  theme(legend.position = "top") + 
+#  labs(x = "Year", y = "Estimate", color = "Continent")
 ```
 
 **Comments**
 
 + The call to 'position_dodge()' within 'geom_pointrange()' allows the point ranges for each continent to be near one another within years, instead of being plotted right on top of one another
 + this approach is good when we're interested in seeing how OLS performs against some other model specification
++ 12/29/2021: error in this chunk. need to debug
 
 ## Plot Marginal Effects
 
@@ -2818,8 +2824,7 @@ p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) +
 p2 <- p1 + scale_fill_manual(values = party_colors) + 
   labs(title = "Election Results 2016", fill = NULL)
 
-#p2 + theme_map()
-p2
+p2 + theme_map()
 ```
 
 **Comments**
@@ -2833,7 +2838,7 @@ p0 <- ggplot(data = us_states_elec,
 p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) + 
   coord_map(projection = "albers", lat0 = 39, lat1 = 45)
 
-p1 + labs(title = "Trump vote") + labs(fill = "Percent")
+p1 + labs(title = "Trump vote") + theme_map() + labs(fill = "Percent")
 ```
 
 **Comments**
@@ -2846,7 +2851,7 @@ p1 + labs(title = "Trump vote") + labs(fill = "Percent")
 p2 <- p1 + scale_fill_gradient(low = "white", high = "#CB454A") + 
   labs(title = "Trump vote")
 
-p2 + labs(fill = "Percent")
+p2 + theme_map() + labs(fill = "Percent")
 ```
 
 **Comments**
@@ -2863,13 +2868,13 @@ p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) +
   coord_map(projection = "albers", lat0 = 39, lat1 = 45)
 
 p2 <- p1 + scale_fill_gradient2() + labs(title = "Winning margins")
-p2 + labs(fill = "Percent")
+p2 + theme_map() + labs(fill = "Percent")
 
 p3 <- p1 + scale_fill_gradient2(low = "red", mid = scales::muted("purple"),
                                 high = "blue", breaks = c(-25, 0, 25, 50, 75)) + 
   labs(title = "Winning margins")
 
-p3 + labs(fill = "Percent")
+p3 + theme_map() + labs(fill = "Percent")
 ```
 
 **Comments**
@@ -2892,7 +2897,7 @@ p2 <- p1 + scale_fill_gradient2(low = "red",
                                 high = "blue") + 
   labs(title = "Winning margins")
 
-p2 + labs(fill = "Percent")
+p2 + theme_map() + labs(fill = "Percent")
 ```
     
 **Comments**
@@ -2901,31 +2906,409 @@ p2 + labs(fill = "Percent")
 
 ## America's Ur-choropleths
 
++ Most choropleth maps of the US for whatever variable in effect show population density more than anything else
++ Procedure for drawing maps: 
 
+    1. One data frame containing the map data
+    2. One data fram containing the fill variables we want plotted
 
++ maps regarding county data are large data frames (3k + counties in US)
 
+```{r}
+county_map %>% sample_n(5)
+```
 
+**Comments**
 
++ this is df 1
++ 'id' column is FIPS code that we can use for our key
 
+```{r}
+county_data %>% 
+  select(id, name, state, pop_dens, pct_black) %>% 
+  sample_n(5)
+```
 
+**Comments**
 
++ this is df 2
++ 'id' column has extra FIPS codes that are not in df 1. These must be dropped
 
+```{r}
+county_full <- left_join(county_map, county_data, by = "id")
+```
 
+**Comments**
 
++ with the data merged, we can map the population density per square mile
 
+```{r}
+p <- ggplot(data = county_full, 
+            mapping = aes(x = long, y = lat, 
+                          fill = pop_dens, 
+                          group = group))
 
+p1 <- p + geom_polygon(color = "gray90", size = 0.05) + coord_equal()
+
+p2 <- p1 + scale_fill_brewer(palette="Blues", 
+                             labels = c("0-10", "10-50", "50-100", "100-500", 
+                                        "500-1,000", "1,000-5,000", ">5,000"))
+
+p2 + labs(fill = "Population per\nsquare mile") + 
+  theme_map() + 
+  guides(fill = guide_legend(nrow = 1)) + 
+  theme(legend.position = "bottom")
+```
+
+**Comments**
+
++ when running 'p1' here, we see that the plot is unordered categorical layout
+
+    + this is because the 'pop_dens' variable is not ordered
+    
++ use 'guides()' function to make sure each element of the key appears on the same row
++ use 'scale_fill_brewer()' to manually supply the right sort of scale to make nicer set of labels
++ use 'coord_equal()' to ensure that the relative scale of the map does not change even if we alter the overall dimensions of the plot
+
+```{r}
+p <- ggplot(data = county_full, 
+            mapping = aes(x = long, y = lat, fill = pct_black, 
+                          group = group))
+
+p1 <- p + geom_polygon(color = "gray90", size = 0.05) + coord_equal()
+
+p2 <- p1 + scale_fill_brewer(palette="Greens")
+
+p2 + labs(fill = "US Population, Percent Black") + 
+  guides(fill = guide_legend(nrow = 1)) + 
+  theme_map() + theme(legend.position = "bottom")
+```
+
+**Comments**
+
++ uses a palette of Greens
++ these maps aren't *explanations* of anything in isolation, but if it turns out that it is more useful to know one or both of these maps instead of the thing I'm plotting, I probably want to reconsider my theory
+
+```{r}
+orange_pal <- RColorBrewer::brewer.pal(n = 6, name = "Oranges")
+orange_pal
+```
+
+**Comments**
+
++ creates a pallete of Oranges from RCOlorBrewer
++ 'brewer.pal()' function produces evenly spaced color schemes to order from any one of several named palettes
++ colors are in hexadecimal format
+
+```{r}
+orange_rev <- rev(orange_pal)
+orange_rev
+```
+
+**Comments**
+
++ 'rev()' reverses the order of the palette
+
+```{r}
+gun_p <- ggplot(data = county_full, 
+                mapping = aes(x = long, y = lat, 
+                              fill = su_gun6,
+                              group = group))
+
+gun_p1 <- gun_p + geom_polygon(color = "gray90", size = 0.05) + coord_equal()
+
+gun_p2 <- gun_p1 + scale_fill_manual(values = orange_pal)
+
+gun_p2 + labs(title = "Gun-Related Suicides, 1999-2015", 
+              fill = "Rate per 100,000 pop.") + 
+  theme_map() + theme(legend.position = "bottom")
+```
+
+```{r}
+pop_p <- ggplot(data = county_full, mapping = aes(x = long, y = lat, 
+                                                  fill = pop_dens6,
+                                                  group = group))
+
+pop_p1 <- pop_p + geom_polygon(color = "gray90", size = 0.05) + coord_equal()
+
+pop_p2 <- pop_p1 + scale_fill_manual(values = orange_rev)
+
+pop_p2 + labs(title = "Reverse-coded Population Density", 
+              fill = "People per square mile") + 
+  theme_map() + theme(legend.position = "bottom")
+```
+
+**Comments**
+
++ it's clear that these 2 maps are not identical
++ dark bands in the West (except for California) stand out, and they fade as we move toward the center of the country
++ Northeast has strong similarities too
++ gun-related suicide measure is already expressed as a rate
+
+    + gun-related suicides = deaths in a county / county population
+    
++ we normally standardize in this way to "control for" the fact that larger populations will tend to produce more gun-related suicides just because they have more people in them
++ the data is subject to reporting constraints connected to population size
++ 12 deaths in a small population might well put a sparsely populated county in the highest category of suicide rate
++ If estimates for these counties cannot be obtained directly or estimated with a good model, then it is better to drop those cases as missing (even at the cost of your beautiful map), than have large areas of the country painted with a color derived from an unreliable number
++ small differences in reporting, combined with coarse binning and miscoding, will produce spatially misleading and substatively mistaken results
++ Rather than coding in '0' for missing data, a standard alternative is to estimate the suppressed observations using a count model
+
+    + an approach like this might naturally lead to more extensive, properly spatial modeling of the data
+    
+## Statebins
+
++ similar to ggplot but slightly different syntax - it needs several arguments, including: 
+
+    1. data frame ('state_data')
+    2. vector of state names ('state_col')
+    3. value being shown ('value_col')
+
+```{r}
+#library(statebins) 
+
+#statebins_continuous(state_data = election, state_col = "state", 
+#                     text_color = "white", value_col = "pct_trump", 
+#                     brewer_pal="Reds", font_size = 3, 
+#                     legend_title="Percent Trump")
+
+#statebins_continuous(state_data = subset(election, st %nin% "DC"), 
+#                     state_col = "state", 
+#                     text_color = "black", value_col = "pct_clinton", 
+#                     brewer_pal="Blues", font_size = 3,
+#                     legend_title="Percent Clinton")
+```
 
 
 
 ```{r}
+#election <- election %>% mutate(color = recode(party, Republican = "darkred", 
+#                                               Democrat = "royalblue"))
 
+#statebins_manual(state_data = election, state_col = "st", 
+#                 color_col = "color", text_color = "white", 
+#                 font_size = 3, legend_title="Winner", 
+#                 labels=c("Trump", "Clinton"), legend_position = "right")
+
+#statebins(state_data = election, 
+#          state_col = "state", value_col = "pct_trump", 
+#          text_color = "white", breaks = 4,
+#          labels = c("4-21", "21-37", "37-53", "53-70"),
+#          brewer_pal="Reds", font_size = 3, legend_title="Percent Trump")
 ```
 
+## Small-Multiple Maps
+
++ plot small-multiples to show changes over time
++ begin using 'opiates' data
+
+```{r}
+# look at the data
+head(opiates, 10)
+vtable(opiates)
+summary(opiates)
+str(opiates)
+```
+
+**Comments**
+
++ take our 'us_states' object (with state-level map details) and merge it with opiates dataset
+
+```{r}
+opiates$region <- tolower(opiates$state)
+opiates_map <- left_join(us_states, opiates)
+```
+
+**Comments**
+
++ As before, we convert the 'state' variable in the 'opiates' data to lowercase first, to make the match work properly
++ since 'opiates' data has a 'year' variable, we can make a faceted small-multiple with one map for each year in the data
+
+```{r}
+p0 <- ggplot(data = subset(opiates_map, year > 1999), 
+             mapping = aes(x = long, y = lat, 
+                           group = group,
+                           fill = adjusted))
+
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.05) + 
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+p2 <- p1 + scale_fill_viridis_c(option = "plasma")
+
+p2 + theme_map() + facet_wrap(~ year, ncol = 3) + 
+  theme(legend.position = "bottom", 
+        strip.background = element_blank()) + 
+  labs(fill = "Death rate per 100,000 population ",
+       title = "Opiate Related Deaths by State, 2000-2014")
+```
+
+**Comments**
+
++ cool facet, but too small
++ too lazy to troubleshoot
++ not sure what "size" argument drives
++ choropleth maps of the US tend to track first the size of the local population and secondarily the % of the population that is African American
+
+## Is Your Data Really Spatial?
+
++ Take our state-level opiates data and redraw it as a time-series plot
++ maintain the state-level focus but try to make the trends more directly visible
+
+```{r}
+p <- ggplot(data = opiates, mapping = aes(x = year, y = adjusted, 
+                                          group = state))
+
+p + geom_line(color = "gray70")
+```
+
+**Comments**
+
++ a more informative approach is to take advantage of the geographical structure of the data by using the census regions to group the states
+
+```{r}
+p0 <- ggplot(data = drop_na(opiates, division_name), 
+             mapping = aes(x = year, y = adjusted))
+
+p1 <- p0 + geom_line(color = "gray70", 
+                     mapping = aes(group = state))
+
+# add smoother
+p2 <- p1 + geom_smooth(mapping = aes(group = division_name), 
+                       se = FALSE)
+```
+
+**Comments**
+
++ 'drop_na()' function delets rows that have observations missing on the specified variables
++ we map the 'group' aesthetic to 'state' in 'geom_line(), which gives us a line plot for every state
++ use the 'color' argument to set the lines to a light gray
++ for smoother: 
+
+    + set 'group' aesthetic' to 'division_name'
+    + if this is set to 'state', we would get 50 separate smoothers in addition to our 50 trend lines
+
+```{r}
+p3 <- p2 + geom_text_repel(data = subset(opiates, 
+                                         year == max(year) & abbr !="DC"),
+                           mapping = aes(x = year, y = adjusted, label = abbr), 
+                           size = 1.8, segment.color = NA, nudge_x = 30) + 
+  coord_cartesian(c(min(opiates$year), 
+                    max(opiates$year)))
+```
+
+**Comments**
+
++ use 'geom_text_repel()' because we are labeling lines rather than points, we want the state label to appear only at the end of the line
++ use 'segment.color = NA' to turn off the little line segments that indicate what the labels refer to 
++ use 'nudge_x' to nudge labels off to the right of the lines a little
++ use 'coord_cartesian()' to set the axis limits so that there is enough room for labels
+
+```{r}
+p3 + labs(x = "", y = "Rate per 100,000 population", 
+          title = "State-Level Opiate Dath Rates by Census Division, 1999-2014") + 
+  facet_wrap(~ reorder(division_name, -adjusted, na.rm = TRUE), nrow = 3)
+```
+
+**Comments**
+
++ facet the results by census division and add our labels
++ use '-adjusted' to reverse the order of this data
++ this shows a clearer picture compared to the maps
++ now able to see the climbing numbers in NH, RI, MA, CN
++ can easily see state-level differences in the West
++ easily see rapid rise in WV death rate
+TS plots are better at conveying the diverging trajectories of various states within regions
+
+## Where to Go Next
+
++ This chapter taught me how to begin to work with state-level and county-level data organized by FIPS codes
++ GIS historically not conveniently connected to software oriented to the analysis of tabular data
++ many other resources to learn more about mapping in R using various libraries and packages
 
 # Refine your Plots
 
-```{r}
++ ggplot default settings work fine for data exploration, even final product sometimes
++ only need to customize when you have to 
++ always be mindful of audience - formatting for a journal, conference audience, or general public
++ start working with 'asasec' data
 
+```{r}
+# look at the data
+head(asasec, 10)
+vtable(asasec)
+summary(asasec)
+str(asasec)
 ```
+
+**Comments**
+
++ we have membership data for each section over a 10 year period
+
+```{r}
+p <- ggplot(data = subset(asasec, Year == 2014), mapping = aes(x = Members, y = Revenues, label = Sname))
+
+p + geom_point() + geom_smooth()
+```
+
+**Comments**
+
++ basic scatterplot-and-smoother graph
++ let's refine it!
+
+    + identify outliers
+    + switch from 'loess' to 'OLS' method
+    + introduce 3rd variable
+
+```{r}
+p <- ggplot(data = subset(asasec, Year == 2014), mapping = aes(x = Members, y = Revenues, label = Sname))
+
+p + geom_point(mapping = aes(color = Journal)) + geom_smooth(method = "lm")
+```
+
+**Comments**
+
++ better, but now need some text labels
++ at this point, makes sense to build intermediate objects and layer up as I go
+
+```{r}
+p0 <- ggplot(data = subset(asasec, Year == 2014), mapping = aes(x = Members, y = Revenues, label = Sname))
+
+p1 <- p0 + geom_smooth(method = "lm", se = FALSE, color = "gray80") + 
+  geom_point(mapping = aes(color = Journal))
+
+p2 <- p1 + geom_text_repel(data = subset(asasec, Year == 2014 & Revenues > 7000), size = 2)
+```
+
+**Comments**
+
++ p0 - bones of plot
++ p1 - scatter plot and smoother
++ p2 - adds text labels on specific criteria
+
+```{r}
+p3 <- p2 + labs(x="Membership", 
+                y="Revenues", 
+                color = "Section has own Journal", 
+                title = "ASA Sections", 
+                subtitle = "2014 Calendar year.", 
+                caption = "Source: ASA annual report.")
+
+p4 <- p3 + scale_y_continuous(labels = scales::dollar) + 
+  theme(legend.position = "bottom") 
+
+print(p4)
+```
+
+**Comments**
+
++ p3 - add labels to axes, add colors, add titles, add caption
++ p4 - change scale labels and move legend to bottom
+
+## Use Color to Your Advantage
+
+
+
+
+
 
 
