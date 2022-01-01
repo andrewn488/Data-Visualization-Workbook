@@ -19,7 +19,6 @@ knitr::opts_chunk$set(fig.width = 8, fig.height = 5, echo = TRUE)
 
 ## Load the libraries we will be using
 library(gapminder)
-library(here)
 library(tidyverse)
 library(socviz)
 library(here)  # make it easier to work with files and subfolders while not needing to type full paths
@@ -278,7 +277,7 @@ p + geom_point()
 
 ```{r}
 # look at the data
-gapminder
+head(gapminder, 10)
 ```
 
 + Plot life expectancy against per capita GDP for all country-years in the data
