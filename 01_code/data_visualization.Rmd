@@ -3594,6 +3594,8 @@ p1 <- p + geom_density(fill = "gray20", color = FALSE,
 + 'switch' argument moves labels to the left
 
 ```{r eval=FALSE, include=FALSE}
+#theme_set(hrbrthemes::theme_book())
+
 #p1 + theme_book(base_size = 10, plot_title_size = 10, 
 #                strip_text_size = 32, panel_spacing = unit(0.1, "lines")) + 
 #  theme(plot.title = element_text(size = 16), 
@@ -3612,7 +3614,7 @@ p1 <- p + geom_density(fill = "gray20", color = FALSE,
 
 **Comments**
 
-+ 'theme_book()' function coult not be found. Need to debug this
++ 'theme_book()' function could not be found. Need to debug this
 
     + hrbrthemes library already loaded. what gives?
     
@@ -3640,25 +3642,246 @@ p + geom_density_ridges(alpha = 0.6, fill = "lightblue", scale = 1.5) +
 
 ## Case Studies
 
-
++ bad graphics are everywhere. better ones are within my reach now
 
 ### Two y-axes
 
++ S&P 500 stock market - 700-2,100 over the period of interest (last 7 years)
++ Monetary Base - measure of the size of money supply
 
+    + range from 1.5 trillion - 4.1 trillion $ over last 7 years
+    
++ when people draw plots with 2 y-axes, they want to line the series up as closely as possible because they suspect that there's a substantive association between them
++ main problem with using 2 y-axes is that it makes it easy to fool yourself (and others) about the degree of association between the variables
++ if the seres are not in the same units (or of widely differing magnitudes), rescale one of the series (e.g., by dividing or multiplying it by 1000)
 
+    + alternatively to index each series to 100 at the start of the first period and then plot them both
+    
++ begin working with 'fredts' data
 
+```{r}
+# look at the data
+head(fredts, 10)
+vtable(fredts)
+summary(fredts)
+str(fredts)
+```
 
+**Comments**
 
++ it's a time series!
 
+```{r}
+fredts_m <- fredts %>% select(date, sp500_i, monbase_i) %>% 
+  gather(key = series, value = score, sp500_i:monbase_i)
 
+head(fredts_m, 10)
+```
 
+**Comments**
 
++ Now that data is tidied in this format, we can make a plot
 
+```{r}
+p <- ggplot(data = fredts_m, 
+            mapping = aes(x = date, y = score, 
+                          group = series, 
+                          color = series))
+p1 <- p + geom_line() + theme(legend.position = "top") + 
+  labs(x = "Date", 
+       y = "Index", 
+       color = "Series")
 
+p <- ggplot(data = fredts, 
+            mapping = aes(x = date, y = sp500_i - monbase_i))
 
+p2 <- p + geom_line() + 
+  labs(x = "Date", 
+       y = "Difference")
+```
 
+**Comments**
 
++ here, we are dealing with 3 series
+    
+    + 2 indices
+    + 1 difference between them
+    
++ approach: make 2 separate plots and arrange how I like. 
 
+```{r}
+theme_set(theme_classic())
+cowplot::plot_grid(p1, p2, nrow = 2, rel_heights = c(0.75, 0.25), align = "v")
+```
 
+**Comments**
+
++ why is this plot using this theme? Looks like either WSJ or HBR theme (maybe NY Times)
++ S&P Index runs above the Monetary Base for almost the entire series
+
+    + this is different from the plots provided in the book (the series crossed many times)
+    
++ correlation != causation, especially with TS data
++ TS might have seasonal component that we would want to account for prior to making claims about growth
++ to make predictions using TS data, need to make the serial nature of the data go away
+
+### Redrawing a bad slide
+
++ use some Yahoo slide as an example
++ start working with 'yahoo' data
+
+```{r}
+# look at the data
+head(yahoo, 10)
+vtable(yahoo)
+summary(yahoo)
+str(yahoo)
+```
+
+```{r}
+p <- ggplot(data = yahoo,
+            mapping = aes(x = Employees, y = Revenue))
+
+p + geom_path(color = "gray80") + 
+  geom_text(aes(color = Mayer, label = Year),
+            size = 3, fontface = "bold") + 
+  theme(legend.position = "bottom") + 
+  labs(color = "Mayer is CEO", 
+       x = "Employees", y = "Revenue (Millions)", 
+       title = "Yahoo Employees vs Revenues, 2004-2014") + 
+  scale_y_continuous(labels = scales::dollar) + 
+  scale_x_continuous(labels = scales::comma)
+```
+
+**Comments**
+
++ this plot suggests that Mayer was appointed *after* a period of falling revenues and just following a very large round of layoffs
+
+```{r}
+p <- ggplot(data = yahoo, 
+            mapping = aes(x = Year, y = Revenue / Employees))
+
+p + geom_vline(xintercept = 2012) + 
+  geom_line(color = "gray60", size = 2) + 
+  annotate("text", x = 2013, y = 0.44, 
+           label = " Mayer becomes CEO", size = 2.5) + 
+  labs(x = "Year\n", 
+       y = "Revenue/Employees", 
+       title = "Yahoo Revenue to Employee Ratio, 2004-2014")
+```
+
+**Comments**
+
++ kept time on x-axis
++ plots the ratio of revenue to employees on the y-axis
++ vertical line marks Mayer's accession to CEO
+
+### Saying no to pie
+
++ Cleveland dotplot or bar chart are usually much more straightforward to compare quantities over a pie chart
++ compromise made to facilitate interpretation is to display all the numerical values for every wedge, and also to add a summary outside the pie
+
+    + typically more effective to show a table instead of a pie chart
+    
++ begin working with 'studebt' data set
+
+```{r}
+# look at the data
+head(studebt, 10)
+vtable(studebt)
+summary(studebt)
+str(studebt)
+```
+
+```{r}
+# set up labels in advance to reuse later
+p_xlab <- "Amount Owed, in thousands of Dollars"
+p_title <- "Outstanding Student Loans"
+p_subtitle <- "44 million borrowers owe a total of $1.3 trillion"
+p_caption <- "Source: FRB NY"
+
+f_labs <- c(`Borrowers` = "Percent of\nall Borrowers", 
+            `Balances` = "Percent of\nall Balances")
+
+p <- ggplot(data = studebt, 
+            mapping = aes(x = Debt, y = pct/100, fill = type))
+p + geom_bar(stat = "identity") + 
+  scale_fill_brewer(type = "qual", palette = "Dark2") + 
+  scale_y_continuous(labels = scales::percent) + 
+  guides(fill = FALSE) + 
+  theme(strip.text.x = element_text(face = "bold")) + 
+  labs(y = NULL, x = p_xlab, 
+       caption = p_caption,
+       title = p_title, 
+       subtitle = p_subtitle) + 
+  facet_grid(~ type, labeller = as_labeller(f_labs)) + 
+  coord_flip()
+```
+
+**Comments**
+
++ relabeled facets to something more informative than bare variable names
+
+    + accomplished by using the 'abeller' argument and the 'as_labeller()' function inside the 'facet_grid()' call
+
++ 'f_labs' - essentially a tiny data frame that associates new labels with the values of the 'type' variable in 'studebt'
+
+    + backticks (tick mark on same key as ~ next to '1' and 'esc') used to pick out the values we want to relabel
+    + 'as_labeller()' function takes 'f_labs' object and uses it to create new text for the labels when 'facet_grid()' is called 
+
++ better than pie chart:
+
+    + split the data into 2 categories and showed the percentage of shares as bars
+    + % scores on x-axis
+    + values on y-axis to distinguish debt categories
+        + easily comparable!
+        
++ when axis labels are long, easier to read them on y-axis (hence coord_flip())
+
+```{r}
+p <- ggplot(studebt, aes(y = pct/100, x = type, fill = Debtrc))
+
+p + geom_bar(stat = "identity", color = "gray80") + 
+  scale_x_discrete(labels = as_labeller(f_labs)) + 
+  scale_y_continuous(labels = scales::percent) + 
+  scale_fill_viridis(discrete = TRUE) + 
+  guides(fill = guide_legend(reverse = TRUE, 
+                             title.position = "top", 
+                             label.position = "bottom", 
+                             keywidth = 3, 
+                             nrow = 1)) + 
+  labs(x = NULL, y = NULL,
+       fill = "Amount Owed, in thousands of dollars", 
+       caption = p_caption, 
+       title = p_title, 
+       subtitle = p_subtitle) + 
+  theme(legend.position = "top", 
+        axis.text.y = element_text(face = "bold", hjust = 1, size = 12), 
+        axis.ticks.length = unit(0, "cm"), 
+        panel.grid.major.y = element_blank()) + 
+  coord_flip()
+```
+
+**Comments**
+
++ 'guides()' call does a lot of work: 
+
+    + 'fill' mapping: reverse the direction of the color coding
+    + 'title.position': put the legend title above the key
+    + 'label.position': put the labels for the colors below the key
+    + 'keywidth': widen the width of the color boxes a little
+    + 'nrow': place the whole key on a single row
+    
++ It is difficult to estimate sizes when we don't have an anchor point or baseline scale to compare each piece to
+
+### Where to Go Next
+
++ Become more confident and practiced with my coding
+
+    + what I choose to pursue will (and should)_ be drivey by my own needs and interests as a scholar and data scientist
+    + work through R4DS next (already doing it for Bosanko!)
+
++ the grammar of graphics is a model that can be used to look at and interpret *any* graph, no matter how it was produced
++ GG provides a vocabulary that lets me say what the data, mappings, geoms, scales, guides, and layers of any particular graph might be
 
 
