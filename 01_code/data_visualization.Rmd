@@ -988,6 +988,7 @@ p + geom_bar(position = "fill")
 ```
 
 **Comments**
+
 + now all bars are same height, which is easier to make comparisons across groups
 
 ```{r}
@@ -996,6 +997,7 @@ p + geom_bar(position = "dodge")
 ```
 
 **Comments**
+
 + ggplot places the bars side-by-side as intended but changes the y-axis back to a *count* of observations
 + we wanted proportions, not counts
 
@@ -1005,6 +1007,7 @@ p + geom_bar(position = "dodge", mapping = aes(y = ..prop..))
 ```
 
 **Comments**
+
 + there seems to be an issue with grouping
 
 ```{r}
@@ -1013,6 +1016,7 @@ p + geom_bar(position = "dodge", mapping = aes(y = ..prop.., group = religion))
 ```
 
 **Comments**
+
 + outputs a bar chart where values of "religion" are broken down across regions, with a proportion showing on the y-axis
 + bars do not sum to 1 within each reagion
 + bars for any particular religion sum to 1 *across* regions
@@ -1029,6 +1033,7 @@ p + geom_bar(position = "dodge", mapping = aes(y = ..prop..,
 ```
 
 **Comments**
+
 + don't try to force geom_bar() to do all the work in a single step
 + Ask ggplot to give us a proportional bar chart of religious affiliation, then facet that by region
 
@@ -1051,6 +1056,7 @@ p + geom_histogram()
 ```
 
 **Comments**
+
 + message: "stat_bin()" using "bins = 30". Pick better value with "binwidth".
 
     + set number of bins in argument
@@ -1062,6 +1068,7 @@ p + geom_histogram(bins = 10)
 ```
 
 **Comments**
+
 + similar to geom_bar(), new variable "count" auto calculated for y-axis
 + when drawing histograms, it's worthwhile to experiment with bins
 + histograms - summarize single variables
@@ -1078,6 +1085,7 @@ p + geom_histogram(alpha = 0.4, bins = 20)
 ```
 
 **Comments**
+
 + subset the data to pick out just 2 states
 + subset() - take our data and filter it so that we select only rows whose "state" name is in this vecotor
 + %in% - filer on more than one term in a variable when using subset()

@@ -1,0 +1,234 @@
+---
+title: "Bosanko Launch Pad"
+author: "Andrew Nalundasan"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(vtable)
+```
+
+
+# Map function
+
+practice working with map() function. 
+article by Rebecca Carter: https://www.rebeccabarter.com/blog/2019-08-19_purrr/
+
+## Lists
+
++ **vector** is a way of storing many individual elements (a single number or a single character or string) of the same type together in a single object
+
++ **data frame** is a way of storing many vectors of the same length but possibly of different types together in a single object
+
+    + a data frame is actually a special case of a list where each element of the list is a vector of the same length
+
++ **list** is a way of storing many objects of any type (e.g. data frames, plots, vectors) together in a single object
+
+
+```{r}
+my_first_list <- list(my_number = 5,
+                      my_vector = c("a", "b", "c"), 
+                      my_dataframe = data.frame(a = 1:3, b = c("q", "b", "z"), c = c("bananas", "are", "so very great")))
+
+my_first_list
+```
+
+
+## Simplest usage: repeated looping with map
+
++ **map function** is one that applies the same action/function to every element of an object (e.g. each entry of a list or a vector, or each of the columns of a data frame)
++ iterate through a vector by adding 10 to each entry.
++ this function applied to a single number, which we will call '.x'
+
+```{r}
+map(.x = c(1, 4, 7), 
+    .f = addTen)
+
+addTen <- function(.x) {
+  return(.x + 10)
+}
+
+```
+
+**Comments**
+
++ map() function iterates 'addTen()' across all entries of the vector, '.x = c(1, 4, 7) and returns the output as a list
++ the first element of the output is the result of applying the function to the first element of the input (1)
++ the second element of the output is the result of applying the function to the second element of the input (4)
++ the third element of the output is the result of applying the function to the third element of the input (7)
+
+
+No matter if the input object is a vector, list, or df, 'map()' **ALWAYS** returns a list
+
+```{r}
+map(list(1, 4, 7), addTen)
+map(data.frame(a = 1, b = 4, c = 7), addTen)
+
+```
+
+Manipulate output type of map() function:
+
+```{r}
+map_dbl(c(1, 4, 7), addTen)  # returns type 'dbl'
+map_chr(c(1, 4, 7), addTen)  # returns type 'chr'
+```
+
+When returning dataframes using map_df(), **MUST** make sure that each iteration you're returning is a df with consistent column mames
+
++ map_df() automotically binds the rows of each iteration
+
+```{r}
+#map_df(c(1, 4, 7), function(.x) {
+#  return(data.frame(old_number = .x,
+#                    new_number = addTen(.x)))
+#})
+```
+
+
+Function modify() works just like map(), but always returns an object the same type as the input object
+
+```{r}
+modify(c(1, 4, 7), addTen)
+modify(list(1, 4, 7), addTen)
+modify(data.frame(1, 4, 7), addTen)
+```
+
+Function modify_if() only applies the funtion to elements that satisfy a specific criteria
++ this example only modifies the 3rd entry since it is greater than 5
+
+```{r}
+modify_if(.x = list(1, 4, 7), 
+          .p = function(x) x > 5, 
+          .f = addTen)
+```
+
+## The tilde=dot shorthand for functions
+
+use this notation to replace: 
+function(x) {
+x + 10
+}
+
+with this: 
+~{.x + 10}
+
+~ indicates that you have started an anonymous function, and the argument of the anonymous function can be referred to using .x (or simply .). Unlike normal function arguments that can be anything that you like, the tilde-dot function argument is always .x.
+
+```{r}
+map_dbl(c(1, 4, 7), ~{.x + 10})
+```
+
+## Applying map functions in a slightly more interesting context
+
++ using 'gapminder' dataset
+
++ best practice workflow: 
+
+    + My general workflow involves loading the original data and saving it as an object with a meaningful name and an _orig suffix. I then define a copy of the original dataset without the _orig suffix. Having an original copy of my data in my environment means that it is easy to check that my manipulations do what I expected. I will make direct data cleaning modifications to the gapminder data frame, but will never edit the gapminder_orig data frame.
+    
+```{r}
+gapminder_orig <- gapminder::gapminder  # this is the OG dataset. edits are NEVER made to OG
+gapminder <- gapminder_orig  # make transformations to this dataset and compare with OG to validate transformations are working
+
+# look at your data
+dim(gapminder)
+head(gapminder)
+
+```
+
+**Comments**
+
++ gapminder is a df, so map_() functions will iterate over each column
++ map_() functions can be used to summarize each column
+
+```{r}
+# apply the class() function to each column
+gapminder %>% 
+  map_chr(class)
+```
+
+**Comments**
+
++ do this to iterate over all columns and learn the type of each column
++ I usually do this using vtable()
+
+```{r}
+# use n_distinct() to each column
+gapminder %>% 
+  map_dbl(n_distinct)
+```
+
+**Comments**
+
++ this identifies the number of distinct values in each column
+
+```{r}
+gapminder %>% 
+  map_df(~(data.frame(n_distinct = n_distinct(.x), 
+                      class = class(.x))))
+```
+
+**Comments**
+
++ Using the tilde-dot notation, the anonymous function calculates the number of distinct entries and the type of the current column
+
+    + which is accessible as .x
+
++ then combines them into a two-column data frame
++ Once it has iterated through each of the columns, the map_df function combines the data frames row-wise into a single data frame
++ side effect: variable names are lost 
+
+    + include '.id = ' argument to include variable names
+    
+```{r}
+gapminder %>% 
+  map_df(~(data.frame(n_distince = n_distinct(.x), 
+                      class = class(.x))), 
+         .id = "variable")
+```
+
+**Comments**
+
++ oooo so tidy
+
+Practice using map() for single element
+
++ since the first element of the gapminder df is the first column, let's define '.x' in our environment to be this first column
+
+```{r}
+# take the first element of the gapminder data
+.x <- gapminder %>% pluck(1)
+
+# look at the first 6 rows
+head(.x)
+```
+
+Create a df for this column that contains the number of distinct entries, and the class of the column
+
+```{r}
+data.frame(n_distinct = n_distinct(.x), 
+           class = class(.x))
+```
+
+Since this works as expected, paste the code into the map function using the tilde-dot shorthand
+
+```{r}
+gapminder %>% 
+  map_df(~(data.frame(n_distinct = n_distinct(.x), 
+                      class = class(.x))), 
+         .id = "variable")
+```
+
+## Maps with multiple input objects
