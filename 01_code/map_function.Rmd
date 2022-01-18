@@ -232,3 +232,143 @@ gapminder %>%
 ```
 
 ## Maps with multiple input objects
+
+Practice iterating over 2 objects
+
+```{r}
+continent_year <- gapminder %>% 
+  distinct(continent, year)
+
+continent_year
+```
+
+Extract the continent and year pairs as separate vectors
+
+```{r}
+# extract the continent and year pairs as separate vectors
+continents <- continent_year %>% 
+  pull(continent) %>% 
+  as.character()
+
+years <- continent_year %>% 
+  pull(year)
+```
+
+Figure out what the first iteration will look like
+
+```{r}
+# try to figure out the code for the first example
+.x <- continents[1]
+.y <- years[1]
+
+# make a scatterplot of GDP vs life expectancy in all Asian countries for 1952
+gapminder %>% 
+  filter(continent == .x,
+         year == .y) %>% 
+  ggplot() + 
+  geom_point(aes(x = gdpPercap, y = lifeExp)) + 
+  ggtitle(glue::glue(.x, " ", .y))
+```
+
+**Comments**
+
++ this works
++ now we can paste this into our map2() function to iterate over entire dataset
+
+```{r}
+plot_list <- map2(.x = continents,
+                  .y = years,
+                  .f = ~{
+                    gapminder %>% 
+                      filter(continent == .x, 
+                             year == .y) %>% 
+                      ggplot() + 
+                      geom_point(aes(x = gdpPercap, y = lifeExp)) + 
+                      ggtitle(glue::glue(.x, " ", .y))
+                  })
+
+plot_list[[1]]
+plot_list[[22]]
+plot_list
+```
+
+## List columns and Nested data frames
+
++ tibbles are tidyverse data frames
++ tibble columns can be lists as opposed to vectors
++ tibble can be "nested" where the tibble is split into separate data frames
+
+Practice with group_by()
+
+```{r}
+gapminder_nested <- gapminder %>% 
+  group_by(continent) %>% 
+  nest()
+
+gapminder_nested
+```
+
+**Comments**
+
++ the first column is the variable that we grouped_by (continent)
++ second column is the rest of the data frame corresponding to that group 
+
+    + as if you filtered the data frame to the specific continent
+    
+```{r}
+gapminder_nested$data[[1]]
+```
+
+**Comments**
+
++ This shows that the first entry in the 'data' column corresponds to the entire gapminder dataset for Asia
++ it is possible to extract ('pluck') entries from the data
+
+```{r}
+# extract the first entry from the data column
+gapminder_nested %>% 
+  pluck("data", 1)
+```
+
+**Comments**
+
++ Now that the data has been nested, now have the power to use dplyr manipulations on more complex objects that can be stored in a list.
+
+```{r}
+tibble(vec_col = 1:10) %>% 
+  mutate(vec_sum = sum(vec_col))
+```
+
+```{r}
+tibble(list_col = list(c(1, 5, 7),
+                       5,
+                       c(10, 10, 11))) %>% 
+  mutate(list_sum = map(list_col, sum))
+```
+
+**Comments**
+
++ use map() as a function to mutate
+
+```{r}
+tibble(list_col = list(c(1, 5, 7), 
+                       5,
+                       c(10, 10, 11))) %>% 
+  mutate(list_sum = map(list_col, sum)) %>% 
+  pull(list_sum)
+```
+
+**Comments**
+
++ map() returns a list itself
++ if wanting to return a vector, use 'map_dbl()' function
+
+```{r}
+tibble(list_col = list(c(1, 5, 7), 
+                       5,
+                       c(10, 10, 11))) %>% 
+  mutate(list_sum = map_dbl(list_col, sum))
+```
+
+## Nesting the gapminder data
+
