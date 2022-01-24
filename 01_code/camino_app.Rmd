@@ -1,0 +1,69 @@
+---
+title: "Discussion 6"
+author: "Andrew Nalundasan"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  word_document:
+    reference_docx: W2-2-2-2_word_memo_template.docx
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Application Questions:
+
+1. When do you plan on starting your thru-hike?
+
+October 1, 2022.
+
+2. What direction will you be headed?
+
+Beginning from St. Jean Pied de Port, I'll be heading west towards Santiago de Compostela. 
+
+3. Do you plan on hiking solo? If not, who will you be thru-hiking with?
+
+Yes, I plan on going it solo on the Camino Frances. I've read that it is common to get on the same "schedule" as other pilgrims due to the spacing of towns along the way and mileage in between, so it is possible that I will make friends along the way, which I am open to. I will begin the thru-hike solo and will keep an open mind when it comes to walking with others, but I intend to relish in the freedoms of solo travel while on this trip. 
+
+4. Please describe your motivation to thru-hike in 2022.
+
+2022 is the logistical perfect storm for me to embark on this thru-hike of the Camino Frances. I will be completing a 2 year graduate degree in Business Analytics in September 2022, and I set the goal of completing this thru-hike as a reward to myself after a grueling 2 years of putting myself through graduate studies. I intend on taking a "gap quarter" prior to reinserting myself into the workforce. October is "off-season" for the Camino Frances, so I will be enjoying cooler temperatures and less pilgrims along the way. This will help bolster the solitary aspect I am seeking. 
+
+5. Why do you want to be a part of the Thru-Hike Syndicate?
+
+I've followed the Thru-Hike Syndicate for a few years now, and have found that the organization's values seem to be aligned with mine. Each ambassador on this channel have all seemed like such lovely individuals. I have never seen anyone that gives off the "influencer" vibe, and I highly respect the Thru-Hike Syndicate for choosing those of us that love hiking for the love of the sport and the clarity that it provides, rather than just doing things for the "likes" and the "comments" that come with it. I would love to help represent this mindset on hiking as an ambassador of not only the Thru-Hike Syndicate, but as an advocate of leave no trace and low impact principles, and to help promote the sport of hiking for the positive health benefits that it provides. 
+
+6. Please list your previous hiking experience or outdoor accomplishments.
+
+I completed the Timberline Trail in 3 days and 2 nights during Summer 2020. 
+I have completed multiple endurance sport events - running (5k, 10k, 15k, half marathon, and full marathon distances), triathlon (sprint and olympic distances), swimrun (Odyssey swimrun series), open water swim (1 and 2 mile distances), cold open water swimming (< 50*F in Puget Sound and Lake Washington).
+I will earn my basic sea kayaking skills badge from the Mountaineers by Fall 2022. I am pushing myself with paddle camping. I built a Pygmy wooden kayak as a "quarantine project" and have been seeking campsites accessible only by paddling in. I've done a few trips in Diablo Lake and am dreaming of opportunities for Ross Lake and paddling the San Juans. The ultimate goal is to become a sea kayak guide and paddle the Inside Passage sometime in my lifetime.
+
+7. What do you think will be your biggest obstacle in completing your thru-hike?
+
+I believe the physical toll that comes from the volume of hiking required to complete the Camino Frances will take a toll on me. I'd like to be overconfident with the physical aspect of this trail since I am accustomed to endurance sport training, but hiking at this volume will be a challenge. Hiking forces you to take things slow and be intentional with every single step. It's certainly as much a mental challenge as it is a physical one, regardless of past experience. This being said, I am looking forward to a chance to slow down and unplug after 2 years of pushing myself intellectually. It's easy to unplug for a few hours when going on a long run. It will be difficult to unplug for 30-35 days to complete the Camino Frances.  
+
+8. What achievements are you most proud of in life?
+
+I am proud of my discernment process with graduate school. While seeing my friends and colleagues earning their advanced degrees straight after undergrad, I felt a bit lost. I knew that I wanted to earn my master's, but I wanted to be intentional about it and not just earn an MBA for the sake of doing it. I'm proud of myself for sticking through 10 years of corporate consulting to experience what I liked, what I disliked, and what I loved. I decided to pursue my degree in Business Analytics after learning how I can obsess over data. Now that I'm towards the end of my program, I can look back with pride since I can tell myself that I created my own strategy and executed my own plan on my own terms and not according to someone else. This is what gets me stoked for my thru-hike of the Camino Frances - I'll be setting my own plan and rolling with the punches however I see best. With thru-hiking, you may have grand plans of what each day will look like, but we all know that everything changes once your feet hit the trail. In my opinion, the nuance and complexity that comes from putting a plan together and executing is the joy of any adventure. I love seeing how I can be pushed and challenged in ways I didn't anticipate, and witnessing how I can come up with solutions and overcome obstacles. In the end, it all weaves together as an epic adventure story. 
+
+9. How did you hear about the Thru-Hike Syndicate?
+
+I purchased a Nemo tent and decided to follow their Instagram channel. I learned about Thru-Hike Syndicate through Nemo's partnering up with the organization. 
+
+By following @nemoequipment. 
+
+10. Are you thru-hiking for a cause? If so, what cause?
+
+I would love to incorporate Movember into my cause. Movember is an organization that promotes awareness and raises funds in support of Men's mental and physical health. I've volunteered for this organization for many years and would welcome an opportunity to work with them on this project. 
+
+```{r}
+# perhaps work with Mike Miller on seeing how we can make this official?
+```
+
+
+11. Anything else you would like to share?
+
+I am ecstatic about my opportunity to hike the Camino Frances in October 2022. This is something that I've dreamed about for several years, which include multiple failed attempts of trip planning and making the time to do it. I feel like it is finally happening this year, pending any unforeseen travel restrictions due to the COVID-19 pandemic. This trip will be a definitive marker in between the phases of my adult life. The first phase of my 20s working in a fast paced consulting world which lead to the decision of taking the time to enhance my educational experience to pursue something beyond what I thought I was capable of. The second phase of my adult life marked at my 30s will begin with hiking the Camino Frances as the launching-off point into new horizons and limits that I will be pursuing, shaping the remainder of my career and my life. This hike is going to set things off on the right foot for the next chapter of my life and I am ready.  
+
