@@ -372,3 +372,82 @@ tibble(list_col = list(c(1, 5, 7),
 
 ## Nesting the gapminder data
 
+# 1/19/2021 Meeting with Claus
+
+```{r}
+## 1/19/2022 meeting with Team
+
+walk(1:35, ~ print(.))
+
+combined %>% 
+  walk(.$t1_02, ~ print())
+
+tibble(x = 1:35) %>% 
+  walk(.x = .$x, .f = ~ print(.x))
+
+## WE KNOW THIS WORKS
+
+combined %>% 
+  walk(.x = unique(.$t1_02), .f = ~ print(.x))
+
+## working on this one
+combined %>% 
+  walk(.x = unique(.$t1_02), .f = function(.x){
+    print(.x)
+  })  
+```
+
+
+```{r}
+# trying different approaches
+## cleaning approach
+
+cleaned <- combined %>% 
+  group_by(t1_02, t1_03) %>%
+  summarise(shock_occurrences = sum(t1_03))
+
+cleaned %>% 
+  map(.x = t1_02, .f = ~ggplot(mapping = aes(x = shock_occurrences))) + 
+  geom_histogram(binwidth = 1)
+
+## walk approach
+
+combined %>% 
+  walk(.x = t1_02, .f = ggplot(mapping = aes(x = t1_03))) + 
+  geom_histogram()
+
+combined %>% 
+  walk(~ggplot(combined$t1_02, aes(x = t1_03)) + 
+        geom_histogram() + 
+        labs(title = paste("Number of occurrences for shock type = ", combined$t1_02),
+             x = "shock occurrences", 
+             y = "count"))
+
+## nested approach
+
+combined_nested <- combined %>% 
+  group_by(t1_02, t1_03) %>% 
+  nest()
+
+combined_nested %>% 
+  walk(~ ggplot(t1_02, aes(x = t1_03)) + 
+         geom_histogram() + 
+         labs(title = paste("Number of occurrences for shock type = ", t1_02),
+              x = "shock occurrences", 
+              y = "count"))
+
+combined_nested <- combined_nested %>% 
+  pluck("data", 1)
+```
+
+
+```{r}
+x <- gl(2, 4, 8)
+
+levels(x)[1] <- "low"
+levels(x)[2] <- "high"
+
+x
+
+```
+
