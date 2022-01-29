@@ -1,0 +1,24 @@
+---
+title: "How mindfulness enables me to achieve the impossible"
+author: "Andrew Nalundasan"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Impossible is Nothing
+
+The past two years have pushed myself and everyone I know out of their comfort zones. The weight of COVID-19 has taken unfathomable tolls on the population's daily lives and mental health. While it was easy to be a victim of a global pandemic, I forced myself to divert what should have been my quarter life crisis into the most impactful growth opportunity of my life. 
+
+While the world was in quarantine in 2020 and impending doom was on everyone's minds, I cracked open some books and started studying. I had been in management consulting for 10 years at this point, and felt myself reaching a plateau in my career. After much soul searching and day dreaming, I decided to apply to graduate programs while I was waiting for the whole global pandemic thing to blow over. It turns out that I was accepted into a graduate program before my company called us back into our offices. Fast forward to today, and I'm nearing the end of my program and still haven't stepped foot back in the office. 
+
+I take great pride in deciding to put myself through graduate school, especially during the COVID-19 time frame. I very well could have stayed reclusive in my shell and watched everything Netflix had to offer, but I intentionally made the decision to work on myself and invest in my future. Rather than waiting for my next opportunity, I actively sought my next stepping stones and went for it. It is through my experience as a graduate student that I learned the discipline of endurance running. 
+
+As I was making strides in my intellectual fitness, I realized that sitting at a computer all day was not conducive to my physical fitness. I decided to go on daily walks which eventually led to quick jogs around the neighborhood. After several months of building up my base mileage, I decided to add completing a full marathon to my list of goals that I wanted to accomplish by the time I completed my degree. I found an 18 week program and stuck to it as best as I could. The entire training process was an incredibly humbling, grueling, transformative, and rewarding experience. Convincing myself to roll out of bed and lace up was a constant mental battle. I had to repeatedly say Des Linden's famous words to myself whenever I was consumed in self doubt: "keep showing up".
+
+And that's what I did. I kept showing up. I kept showing up to my runs, to my schoolwork, to my classmates, to my family, to my piano, and most importantly, to myself. I knew I wasn't the smartest student, the best brother, or the fastest runner, and I became comfortable with that because I knew I was giving each aspect of my life the absolute best I could. Getting into this mindset of not having to be the best at something was liberating. All my life, I've been trying to prove myself to others to show how "good" I was at anything. But now I've adopted the mindset of proving myself to myself and to not worry about what other people think. I discovered the power of mindfulness through marathon training and through graduate school. I no longer compare myself to others but rather ask myself "did I do everything I could to get to where I am now?" to remind myself of how far I've come from where I started. 
+
+My response to this prompt is not saying that graduate school or running marathons is impossible and that I overcame them both. My impossible was simply believing in myself. It was through excelling in graduate school and reaching the marathon finish line that proved to myself that I can do anything that I really put my mind to. With this type of mindset, impossible really is nothing. Impossible goals become possible when you truly believe in yourself. Talent and natural ability only play a small part in the recipe. The mindset of believing in yourself is what makes the impossible become possible.   
